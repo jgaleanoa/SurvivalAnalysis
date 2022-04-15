@@ -58,4 +58,96 @@ library(latex2exp)
 
 \section{Ejercicio 6}
 
+```{r CAH-6}
+cah <- read.table("CAH.txt", header = T)
+```
+
+Uno de los principales intereses de un estudio medico es determinar si el tratamiento que está siendo suministrado a sus pacientes sea efectivo contra la enfermedad en cuestión. En Kirk et al (1980) se le suministra la droga prednisolona a un grupo de pacientes que sufren hepatitis crónica activa mientras que a otro grupo de estos no se les suministra dicho medicamento por lo que surge de manera natural la idea de comparar ambos grupos con el propósito de investigar si la prednisolona es realmente efectiva contra la hepatitis crónica activa, para esto se usará $Log - Rank$ test el cual contempla las siguientes hipótesis
+
+$$
+\begin{cases}
+H_0: \forall_t \hspace{.1in} S_1(t) = S_2(t) \\
+H_1: \exists_t \hspace{.1in} S_1(t) \neq S_2(t)
+\end{cases}
+$$
+Se usa como estadístico de prueba
+
+$$
+Log-rank = \frac{(O_i - E_i)^2}{Var(O_i - E_i)} \sim \chi_{(k-1)}^2
+$$
+
+siendo $k$ el número de grupos, para este caso $k = 2$. Se puede verificar que esta cantidad es invariante al grupo seleccionado, es decir, su valor será el mismo sin importar si se calcula con el grupo 1 o 2, sean:
+
+* $O_i$: Valor observado en el grupo $i$
+* $E_i$: Valor esperado en el grupo $i$
+* $m_{ij}$: Número de fallas en el grupo $i$
+* $e_{ij}$: Conteo esperado en cada categoría
+* $n_{ij}$: Número de pacientes a efectivos en el grupo $i$ y tiempo $j$
+
+$$
+\begin{aligned}
+e_{ij} &= \left( \frac{n_{ij}}{n_{1j} + n_{2j}} \right)(m_{1j} + m_{2j}) \\
+(O_i - E_i) &= \sum_{j=1}^{\# \ \text{fallas}} (m_{ij} - e_{ij}) \\
+Var(O_i - E_i) &= \sum_{j=1}^{\# \ \text{fallas}} \frac{n_{1j} n_{2j} (m_{1j} + m_{2j})(n_{1j} + n_{2j} - m_{1j} - m_{2j})}{(n_{1j} + n_{2j})^2 (n_{1j} + n_{2j} - 1)}
+\end{aligned}
+$$
+
+Para ilustrar de forma detallada el procedimiento, se mostrará un paso a paso del mismo.
+
+**Paso 1**
+
+Inicialmente se ordenan todos los tiempos de falla únicos sin distinguir al grupo que pertenecen obteniendo lo siguiente
+
+```{r tiempos-falla, warning=F}
+options(knitr.kable.NA = "")
+tj <- select(cah, time) %>%
+  unlist() %>%
+  as.vector() %>%
+  unique() %>% 
+  sort()
+aux_mat <- matrix(c(tj, NA, NA), nrow = 4, ncol = 10, byrow = T)
+
+kable(aux_mat, booktabs = T, longtable = T, position = "center")
+```
+
+**Paso 2**
+
+Luego de ordenar los tiempos únicos, se cuenta el número de fallas por grupo $m_{ij}$ y el número de pacientes efectivos $n_{ij}$ para cada tiempo de falla teniendo en cuenta que cada que exista una nueva falla o censura dicha cantidad disminuirá $n_{ij} = n_{i(j-1)} - m_{i(j-1)} - q_{i(j-1)}$ con $q_{ij}$ número de censuras en el grupo $i$ y tiempo $j$ 
+
+```{r paso-2}
+# Conteo para el grupo 1
+# 56 hay censura
+# 96 hay dos fallas
+# "Segunda fila" empieza con 125
+# 128, 131, 140, 141 hay censura
+# Vuelve a haber falla en 143
+# 148 hay censura
+# 162 hay censura
+# 173 y 181 hay censura
+m1j <- c(2, 0, 0, 0, 0, 1, rep(0, 7), 1, 0, 0, 0, 1, 0, 1, 2, 
+         0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0)
+
+# "Segunda fila" empieza con t = 125 
+n1j <- c(rep(22, 5), rep(20, 8), 19, 18, 18, 18, 17, 17, 16, 14,
+         13, 13, 12, 11, 10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 2, 1, 1)
+
+# Conteo para el grupo 2
+# "Primera fila" termina en 71
+# 127 hay censura
+# 140 hay censura 
+# 146 hay censura
+# 158 hay censura
+# 167 hay censura
+# 182 hay censura
+m2j <- c(1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+# "Segunda fila" empieza con 63 
+n2j <- c(22, 21, 20, 19, 18, 18, 17, 16, 15, 14, 13, 12, 11, 10, 10, 9, 
+         8, 8, 7, 7, 7, 7, 6, 6, 6, 5, 5, 5, 5, 4, 4, 3, 3, 2, 2, 2, 2, 1)
+logrank_data <- data.frame(tj, m1j, m2j, n1j, n2j)
+```
+
+
+
 \section{Ejercicio 7}
