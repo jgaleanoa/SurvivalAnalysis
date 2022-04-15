@@ -28,7 +28,10 @@ knitr::opts_chunk$set(echo = F, fig.align = "center",
 library(kableExtra)
 library(knitr)
 library(tidyverse)
+library(magrittr)
 library(latex2exp)
+library(ggfortify)
+library(survival)
 ```
 
 ```{=tex}
@@ -112,7 +115,7 @@ kable(aux_mat, booktabs = T, longtable = T, position = "center")
 
 **Paso 2**
 
-Luego de ordenar los tiempos únicos, se cuenta el número de fallas por grupo $m_{ij}$ y el número de pacientes efectivos $n_{ij}$ para cada tiempo de falla teniendo en cuenta que cada que exista una nueva falla o censura dicha cantidad disminuirá $n_{ij} = n_{i(j-1)} - m_{i(j-1)} - q_{i(j-1)}$ con $q_{ij}$ número de censuras en el grupo $i$ y tiempo $j$ 
+Luego de ordenar los tiempos únicos, se cuenta el número de fallas por grupo $m_{ij}$ y el número de pacientes efectivos $n_{ij}$ para cada tiempo de falla teniendo en cuenta que cada que exista una nueva falla o censura dicha cantidad disminuirá como $n_{ij} = n_{i(j-1)} - m_{i(j-1)} - q_{i(j-1)}$ con $q_{ij}$ número de censuras en el grupo $i$ y tiempo $j$. Luego de realizar las cuentas se obtiene lo siguiente 
 
 ```{r paso-2}
 # Conteo para el grupo 1
@@ -128,9 +131,11 @@ m1j <- c(2, 0, 0, 0, 0, 1, rep(0, 7), 1, 0, 0, 0, 1, 0, 1, 2,
          0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0)
 
 # "Segunda fila" empieza con t = 125 
-n1j <- c(rep(22, 5), rep(20, 8), 19, 18, 18, 18, 17, 17, 16, 14,
-         13, 13, 12, 11, 10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 2, 1, 1)
-
+# n1j <- c(rep(22, 5), rep(20, 8), 19, 18, 18, 18, 17, 17, 16, 14,
+#          13, 13, 12, 11, 10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 2, 1, 1)
+# "Segunda fila" empieza con t = 96 (n1j = 15)
+n1j <- c(22, 20, 20, 20, 20, 20, rep(19, 7), 19, 18, 18, 18, 17, 17, 16,
+         15, 13, 13, 12, 11, 10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 2, 1, 1)
 # Conteo para el grupo 2
 # "Primera fila" termina en 71
 # 127 hay censura
@@ -146,8 +151,60 @@ m2j <- c(1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1,
 n2j <- c(22, 21, 20, 19, 18, 18, 17, 16, 15, 14, 13, 12, 11, 10, 10, 9, 
          8, 8, 7, 7, 7, 7, 6, 6, 6, 5, 5, 5, 5, 4, 4, 3, 3, 2, 2, 2, 2, 1)
 logrank_data <- data.frame(tj, m1j, m2j, n1j, n2j)
+
+kable(cbind(logrank_data[1:19, ], logrank_data[20:38, ])[1:13, ], 
+      booktabs = T, longtable = T, escape = F,
+      col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$",
+                    "$n_{1j}$", "$n_{2j}$",
+                    "$t_j$", "$m_{1j}$", "$m_{2j}$",
+                    "$n_{1j}$", "$n_{2j}$"))
+kable(cbind(logrank_data[1:19, ], logrank_data[20:38, ])[14:19, ], 
+      booktabs = T, longtable = T, escape = F,
+      col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$",
+                    "$n_{1j}$", "$n_{2j}$",
+                    "$t_j$", "$m_{1j}$", "$m_{2j}$",
+                    "$n_{1j}$", "$n_{2j}$"), row.names = F)
 ```
 
+**Paso 3**
+
+Una vez calculados los $m_{ij}$ y $n_{ij}$ se pueden calcular los $e_{ij}$ con las formulas presentadas anteriormente, obteniendo lo siguiente
+
+```{r paso-3}
+logrank_data %<>% 
+  mutate(e1j = (n1j/(n1j + n2j))*(m1j + m2j),
+         e2j = (n2j/(n1j + n2j))*(m1j + m2j))
+kable(logrank_data, longtable = T, booktabs = T, escape = F,
+      col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$",
+                    "$n_{1j}$", "$n_{2j}$", "$e_{1j}$", "$e_{2j}$"),
+      digits = 4)
+```
+
+**Paso 4**
+
+Finalmente se calculan los $m_{ij} - e_{ij}$ para estimar la cantidad $O_i - E_i$
+
+```{r paso-4}
+logrank_data %<>% 
+  mutate(m1j_e1j = m1j - e1j,
+         m2j_e2j = m2j - e2j)
+final_row <- colSums(logrank_data) %>% 
+  as.vector()
+final_row[1] <- NA
+
+logrank_data <- rbind(logrank_data, final_row)
+
+kable(logrank_data, longtable = T, booktabs = T, escape = F,
+      col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$", "$n_{1j}$",
+                    "$n_{2j}$", "$e_{1j}$", "$e_{2j}$",
+                    "$m_{1j} - e_{1j}$", "$m_{2j} - e_{2j}$"),
+      digit = 4)
+```
+
+
+```{r lolazo}
+szs <- survdiff(Surv(time, status) ~ group, data = cah)
+```
 
 
 \section{Ejercicio 7}
