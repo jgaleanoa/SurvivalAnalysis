@@ -174,10 +174,14 @@ Una vez calculados los $m_{ij}$ y $n_{ij}$ se pueden calcular los $e_{ij}$ con l
 logrank_data %<>% 
   mutate(e1j = (n1j/(n1j + n2j))*(m1j + m2j),
          e2j = (n2j/(n1j + n2j))*(m1j + m2j))
-kable(logrank_data, longtable = T, booktabs = T, escape = F,
+kable(logrank_data[1:25, ], longtable = T, booktabs = T, escape = F,
       col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$",
                     "$n_{1j}$", "$n_{2j}$", "$e_{1j}$", "$e_{2j}$"),
       digits = 4)
+kable(logrank_data[26:38, ], longtable = T, booktabs = T, escape = F,
+      col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$",
+                    "$n_{1j}$", "$n_{2j}$", "$e_{1j}$", "$e_{2j}$"),
+      digits = 4, row.names = F)
 ```
 
 **Paso 4**
@@ -194,17 +198,48 @@ final_row[1] <- NA
 
 logrank_data <- rbind(logrank_data, final_row)
 
-kable(logrank_data, longtable = T, booktabs = T, escape = F,
+kable(logrank_data[1:20, ], longtable = T, booktabs = T, escape = F,
       col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$", "$n_{1j}$",
                     "$n_{2j}$", "$e_{1j}$", "$e_{2j}$",
                     "$m_{1j} - e_{1j}$", "$m_{2j} - e_{2j}$"),
       digit = 4)
+kable(logrank_data[21:39, ], longtable = T, booktabs = T, escape = F,
+      col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$", "$n_{1j}$",
+                    "$n_{2j}$", "$e_{1j}$", "$e_{2j}$",
+                    "$m_{1j} - e_{1j}$", "$m_{2j} - e_{2j}$"),
+      digit = 4, row.names = F)
+
+```
+
+De esta última tabla se apreciar que $(O_2 - E_2) = -(O_1 - E_1)$.
+
+**Paso 5**
+
+Tal como se mencionó previamente, el estadístico $Log-rank$ será el mismo sin importar si este es calculado con el grupo 1 o el 2, para la situación dada se escoge el grupo 2 obteniéndose 
+
+```{r paso-5, message=F}
+attach(logrank_data)
+num_g2 <- n1j*n2j*(m1j + m2j)*(n1j + n2j - m1j - m2j)
+den_g2 <- (n1j + n2j)^2 * (n1j + n2j - 1)
+detach(logrank_data)  
+
+O2_E2 <- logrank_data$m2j_e2j[39]
+var_g2 <- sum(num_g2/den_g2)
+logrank_stat <- O2_E2^2 / var_g2
 ```
 
 
-```{r lolazo}
-szs <- survdiff(Surv(time, status) ~ group, data = cah)
-```
-
+$$
+Var(O_2 - E_2) = `r round(var_g2, 4)`
+$$
+Luego de haber realizado e ilustrado los cálculos, se obtiene
+$Log-rank = \frac{`r round(O2_E2^2, 4)`}{`r round(var_g2, 4)`} = `r round(logrank_stat, 4)`$ 
 
 \section{Ejercicio 7}
+
+```{r logrank-auto, eval=F}
+survdiff(Surv(time, status) ~ group, data = cah)
+```
+
+
+
