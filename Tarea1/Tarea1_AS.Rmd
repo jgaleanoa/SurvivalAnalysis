@@ -133,9 +133,10 @@ m1j <- c(2, 0, 0, 0, 0, 1, rep(0, 7), 1, 0, 0, 0, 1, 0, 1, 2,
 # "Segunda fila" empieza con t = 125 
 # n1j <- c(rep(22, 5), rep(20, 8), 19, 18, 18, 18, 17, 17, 16, 14,
 #          13, 13, 12, 11, 10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 2, 1, 1)
-# "Segunda fila" empieza con t = 96 (n1j = 15)
-n1j <- c(22, 20, 20, 20, 20, 20, rep(19, 7), 19, 18, 18, 18, 17, 17, 16,
-         15, 13, 13, 12, 11, 10, 9, 8, 7, 6, 5, 5, 4, 4, 3, 2, 1, 1)
+# "Segunda fila" empieza con t = 96 (n1j = 15)       #   #       #
+n1j <- c(22, 20, 20, 20, 20, 20, rep(19, 7), 19, 18, 17, 17, 17, 16, 16,
+         15, 13, 12, 12, 11, 10, 9, 8, 7, 6, 5, 4, 4, 3, 3, 2, 1, 0)
+                 #                              #     #           #
 # Conteo para el grupo 2
 # "Primera fila" termina en 71
 # 127 hay censura
@@ -148,8 +149,10 @@ m2j <- c(1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1,
          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
 # "Segunda fila" empieza con 63 
-n2j <- c(22, 21, 20, 19, 18, 18, 17, 16, 15, 14, 13, 12, 11, 10, 10, 9, 
-         8, 8, 7, 7, 7, 7, 6, 6, 6, 5, 5, 5, 5, 4, 4, 3, 3, 2, 2, 2, 2, 1)
+                             #                                   #  
+n2j <- c(22, 21, 20, 19, 18, 17, 17, 16, 15, 14, 13, 12, 11, 10, 9, 9, 
+         8, 7, 7, 6, 6, 6, 6, 5, 5, 5, 4, 4, 4, 4, 3, 3, 2, 2, 1, 1, 1, 1)
+            #     #           #        #           #     #     #
 logrank_data <- data.frame(tj, m1j, m2j, n1j, n2j)
 
 kable(cbind(logrank_data[1:19, ], logrank_data[20:38, ])[1:13, ], 
@@ -218,10 +221,11 @@ De esta última tabla se apreciar que $(O_2 - E_2) = -(O_1 - E_1)$.
 Tal como se mencionó previamente, el estadístico $Log-rank$ será el mismo sin importar si este es calculado con el grupo 1 o el 2, para la situación dada se escoge el grupo 2 obteniéndose 
 
 ```{r paso-5, message=F}
-attach(logrank_data)
-num_g2 <- n1j*n2j*(m1j + m2j)*(n1j + n2j - m1j - m2j)
-den_g2 <- (n1j + n2j)^2 * (n1j + n2j - 1)
-detach(logrank_data)  
+num_g2 <- with(logrank_data[-39, ],
+               n1j*n2j*(m1j + m2j)*(n1j + n2j - m1j - m2j))
+
+den_g2 <- with(logrank_data[-39, ],
+               (n1j + n2j)^2 * (n1j + n2j - 1))
 
 O2_E2 <- logrank_data$m2j_e2j[39]
 var_g2 <- sum(num_g2/den_g2)
