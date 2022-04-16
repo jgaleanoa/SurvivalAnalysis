@@ -221,10 +221,10 @@ De esta última tabla se apreciar que $(O_2 - E_2) = -(O_1 - E_1)$.
 Tal como se mencionó previamente, el estadístico $Log-rank$ será el mismo sin importar si este es calculado con el grupo 1 o el 2, para la situación dada se escoge el grupo 2 obteniéndose 
 
 ```{r paso-5, message=F}
-num_g2 <- with(logrank_data[-39, ],
+num_g2 <- with(logrank_data[1:35, ],
                n1j*n2j*(m1j + m2j)*(n1j + n2j - m1j - m2j))
 
-den_g2 <- with(logrank_data[-39, ],
+den_g2 <- with(logrank_data[1:35, ],
                (n1j + n2j)^2 * (n1j + n2j - 1))
 
 O2_E2 <- logrank_data$m2j_e2j[39]
@@ -242,7 +242,7 @@ $Log-rank = \frac{`r round(O2_E2^2, 4)`}{`r round(var_g2, 4)`} = `r round(logran
 \section{Ejercicio 7}
 
 ```{r logrank-auto, eval=F}
-survdiff(Surv(time, status) ~ group, data = cah)
+survdiff(Surv(time, status) ~ group, data = cah)$obs
 ```
 
 
