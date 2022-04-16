@@ -32,6 +32,7 @@ library(magrittr)
 library(latex2exp)
 library(ggfortify)
 library(survival)
+library(survminer)
 ```
 
 ```{=tex}
@@ -65,7 +66,15 @@ library(survival)
 cah <- read.table("CAH.txt", header = T)
 ```
 
-Uno de los principales intereses de un estudio medico es determinar si el tratamiento que está siendo suministrado a sus pacientes sea efectivo contra la enfermedad en cuestión. En Kirk et al (1980) se le suministra la droga prednisolona a un grupo de pacientes que sufren hepatitis crónica activa mientras que a otro grupo de estos no se les suministra dicho medicamento por lo que surge de manera natural la idea de comparar ambos grupos con el propósito de investigar si la prednisolona es realmente efectiva contra la hepatitis crónica activa, para esto se usará $Log - Rank$ test el cual contempla las siguientes hipótesis
+Uno de los principales intereses de un estudio medico es determinar si el
+tratamiento que está siendo suministrado a sus pacientes sea efectivo
+contra la enfermedad en cuestión. En Kirk et al (1980) se le suministra la
+droga prednisolona a un grupo de pacientes que sufren hepatitis crónica
+activa mientras que a otro grupo de estos no se les suministra dicho
+medicamento por lo que surge de manera natural la idea de comparar ambos
+grupos con el propósito de investigar si la prednisolona es realmente
+efectiva contra la hepatitis crónica activa, para esto se usará 
+$Log - Rank$ test el cual contempla las siguientes hipótesis
 
 $$
 \begin{cases}
@@ -79,7 +88,9 @@ $$
 Log-rank = \frac{(O_i - E_i)^2}{Var(O_i - E_i)} \sim \chi_{(k-1)}^2
 $$
 
-siendo $k$ el número de grupos, para este caso $k = 2$. Se puede verificar que esta cantidad es invariante al grupo seleccionado, es decir, su valor será el mismo sin importar si se calcula con el grupo 1 o 2, sean:
+siendo $k$ el número de grupos, para este caso $k = 2$. Se puede verificar
+que esta cantidad es invariante al grupo seleccionado, es decir, su valor
+será el mismo sin importar si se calcula con el grupo 1 o 2, sean:
 
 * $O_i$: Valor observado en el grupo $i$
 * $E_i$: Valor esperado en el grupo $i$
@@ -95,11 +106,13 @@ Var(O_i - E_i) &= \sum_{j=1}^{\# \ \text{fallas}} \frac{n_{1j} n_{2j} (m_{1j} + 
 \end{aligned}
 $$
 
-Para ilustrar de forma detallada el procedimiento, se mostrará un paso a paso del mismo.
+Para ilustrar de forma detallada el procedimiento, se mostrará un paso a
+paso del mismo.
 
 **Paso 1**
 
-Inicialmente se ordenan todos los tiempos de falla únicos sin distinguir al grupo que pertenecen obteniendo lo siguiente
+Inicialmente se ordenan todos los tiempos de falla únicos sin distinguir
+al grupo que pertenecen obteniendo lo siguiente
 
 ```{r tiempos-falla, warning=F}
 options(knitr.kable.NA = "")
@@ -115,7 +128,13 @@ kable(aux_mat, booktabs = T, longtable = T, position = "center")
 
 **Paso 2**
 
-Luego de ordenar los tiempos únicos, se cuenta el número de fallas por grupo $m_{ij}$ y el número de pacientes efectivos $n_{ij}$ para cada tiempo de falla teniendo en cuenta que cada que exista una nueva falla o censura dicha cantidad disminuirá como $n_{ij} = n_{i(j-1)} - m_{i(j-1)} - q_{i(j-1)}$ con $q_{ij}$ número de censuras en el grupo $i$ y tiempo $j$. Luego de realizar las cuentas se obtiene lo siguiente 
+Luego de ordenar los tiempos únicos, se cuenta el número de fallas por
+grupo $m_{ij}$ y el número de pacientes efectivos $n_{ij}$ para cada 
+tiempo de falla teniendo en cuenta que cada que exista una nueva falla o
+censura dicha cantidad disminuirá como 
+$n_{ij} = n_{i(j-1)} - m_{i(j-1)} - q_{i(j-1)}$ con $q_{ij}$ número de
+censuras en el grupo $i$ y tiempo $j$. Luego de realizar las cuentas se
+obtiene lo siguiente 
 
 ```{r paso-2}
 # Conteo para el grupo 1
@@ -171,7 +190,9 @@ kable(cbind(logrank_data[1:19, ], logrank_data[20:38, ])[14:19, ],
 
 **Paso 3**
 
-Una vez calculados los $m_{ij}$ y $n_{ij}$ se pueden calcular los $e_{ij}$ con las formulas presentadas anteriormente, obteniendo lo siguiente
+Una vez calculados los $m_{ij}$ y $n_{ij}$ se pueden calcular los
+$e_{ij}$ con las formulas presentadas anteriormente, obteniendo lo
+siguiente
 
 ```{r paso-3}
 logrank_data %<>% 
@@ -195,9 +216,9 @@ Finalmente se calculan los $m_{ij} - e_{ij}$ para estimar la cantidad $O_i - E_i
 logrank_data %<>% 
   mutate(m1j_e1j = m1j - e1j,
          m2j_e2j = m2j - e2j)
-final_row <- colSums(logrank_data) %>% 
+final_row <- colSums(logrank_data[1:35, ]) %>% 
   as.vector()
-final_row[1] <- NA
+final_row[c(1, 4:5)] <- NA
 
 logrank_data <- rbind(logrank_data, final_row)
 
@@ -214,11 +235,16 @@ kable(logrank_data[21:39, ], longtable = T, booktabs = T, escape = F,
 
 ```
 
-De esta última tabla se apreciar que $(O_2 - E_2) = -(O_1 - E_1)$.
+La última fila de la anterior tabla es la suma de cada columna hasta la
+falla número 35 la cual corresponde al tiempo $t=168$ puesto que en dicho
+momento se presenta la última falla, de aquí se aprecia que 
+$(O_2 - E_2) = -(O_1 - E_1)$.
 
 **Paso 5**
 
-Tal como se mencionó previamente, el estadístico $Log-rank$ será el mismo sin importar si este es calculado con el grupo 1 o el 2, para la situación dada se escoge el grupo 2 obteniéndose 
+Tal como se mencionó previamente, el estadístico $Log-rank$ será el 
+mismo sin importar si este es calculado con el grupo 1 o el 2, para la
+situación dada se escoge el grupo 2 obteniendo
 
 ```{r paso-5, message=F}
 num_g2 <- with(logrank_data[1:35, ],
@@ -236,13 +262,54 @@ logrank_stat <- O2_E2^2 / var_g2
 $$
 Var(O_2 - E_2) = `r round(var_g2, 4)`
 $$
-Luego de haber realizado e ilustrado los cálculos, se obtiene
-$Log-rank = \frac{`r round(O2_E2^2, 4)`}{`r round(var_g2, 4)`} = `r round(logrank_stat, 4)`$ 
+
+Luego de haber realizado e ilustrado los cálculos, se obtiene \newline
+$Log-rank = \frac{(`r round(O2_E2, 4)`)^2}{Var(O_2 - E_2)} =\frac{`r round(O2_E2^2, 4)`}{`r round(var_g2, 4)`} = `r round(logrank_stat, 4)`$
+y debido a que $Log-rank \sim \chi^2_{(1)}$ se calcula el valor-p como
+$\mathbb{P}\left(\chi^2_{(1)} > `r round(logrank_stat, 4)`\right) = `r pchisq(logrank_stat, 1, lower.tail = F) %>% round(4)`$ 
+con lo cual a un nivel de significancia usual de 0.05 se rechaza $H_0$
+y se concluye que existe evidencia muestral suficiente para pensar 
+$S_1(t) \neq S_2(t)$.
+
+En términos del problema, esto quiere decir que existe un grupo de
+pacientes el cual tiene tiempos de supervivencia mayores al otro sin
+embargo no se sabe cual. Si el grupo con mayor tiempo de supervivencia es
+aquel que esta siendo medicado con prednisolona se concluiría que la droga
+es efectiva para tratar la hepatitis crónica activa de lo contrario se
+concluiría que el tratamiento con prednisolona empeora el estado de salud
+de los pacientes.
+
+Para notar cual de los dos grupos tiene mayor tiempo de supervivencia se
+grafican las curvas de supervivencia estimadas con el método de
+Kaplan - Meier
+
+```{r survplot-6}
+KM_cah <- survfit(Surv(time, status) ~ group, data = cah)
+
+# El buen stack overflow nunca falla xd
+custom_theme <- function() {
+  theme_bw() %+replace%
+    theme(
+      plot.title = element_text(hjust=0.5)
+    )
+}
+ggsurvplot(KM_cah, data = cah,
+           legend.title = "Grupo",
+           legend.labs = c("Prednisolona", "Control"),
+           title = "Curvas de supervivencia estimadas por KM",
+           xlab = "Tiempo", ylab = "Probabilidad de supervivencia",
+           ggtheme = custom_theme())
+```
+
+Aquí se puede notar claramente que el grupo que esta recibiendo la droga
+tiene mayor probabilidad de supervivencia respecto al grupo de control
+por lo que se puede concluir que el tratamiento con prednisolona es
+efectivo para combatir la hepatitis crónica activa.
 
 \section{Ejercicio 7}
 
 ```{r logrank-auto, eval=F}
-survdiff(Surv(time, status) ~ group, data = cah)$obs
+
 ```
 
 
