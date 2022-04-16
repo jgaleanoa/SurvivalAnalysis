@@ -279,9 +279,44 @@ es efectiva para tratar la hepatitis crónica activa de lo contrario se
 concluiría que el tratamiento con prednisolona empeora el estado de salud
 de los pacientes.
 
-Para notar cual de los dos grupos tiene mayor tiempo de supervivencia se
-grafican las curvas de supervivencia estimadas con el método de
-Kaplan - Meier
+\section{Ejercicio 7}
+
+El proceso realizado en el ejercicio 6 es importante conocerlo para evitar
+el efecto caja negra al usar funciones sin entender que están haciendo
+internamente. Luego de ilustrar el proceso manual para entender de forma
+adecuada el proceso, este es realizado con el software computacional R el
+cual simplifica de manera sustancial el trabajo, para este propósito se
+usaran las funciones `Surv()` y `survdiff()` del paquete `survival`.
+
+Inicialmente se debe usar la función `Surv()` para crear un objeto de la
+clase survival el cual posteriormente será usado como variable respuesta.
+Luego de crear el objeto survival, este es usado en la función 
+`survdiff()` la cual recibe una formula como primer argumento  y en dicha
+formula se modela el objeto survival en función de los grupos. 
+
+Finalmente se obtienen los siguientes resultados:
+
+```{r conR-6}
+auto_logrank <- survdiff(Surv(time, status) ~ group, data = cah)
+
+result_logrank <- data.frame(N = c(22, 22),
+                             Observado = c(11, 16),
+                             Esperado = c(16.3, 10.7),
+                             O_E = c(1.74, 2.67),
+                             O_V = c(4.59, 4.59))
+kable(result_logrank, longtable = T, booktabs = T, escape = F,
+      col.names = c("N", "Observado", "Esperado",
+                    "$\\frac{(O-E)^2}{E}$", "$\\frac{(O-E)^2}{V}$"))
+```
+
+$$
+\chi^2 = 4.6 \ \text{ con 1 grado de libertad, p = 0.03}
+$$
+El cual concuerda con el resultado obtenido manualmente.
+
+Finalmente, para descubrir cual de los dos grupos tiene mayor tiempo de
+supervivencia se grafican las curvas de supervivencia estimadas con el
+método de Kaplan - Meier
 
 ```{r survplot-6}
 KM_cah <- survfit(Surv(time, status) ~ group, data = cah)
@@ -294,6 +329,7 @@ custom_theme <- function() {
     )
 }
 ggsurvplot(KM_cah, data = cah,
+           surv.median.line = "hv",
            legend.title = "Grupo",
            legend.labs = c("Prednisolona", "Control"),
            title = "Curvas de supervivencia estimadas por KM",
@@ -302,15 +338,12 @@ ggsurvplot(KM_cah, data = cah,
 ```
 
 Aquí se puede notar claramente que el grupo que esta recibiendo la droga
-tiene mayor probabilidad de supervivencia respecto al grupo de control
-por lo que se puede concluir que el tratamiento con prednisolona es
-efectivo para combatir la hepatitis crónica activa.
-
-\section{Ejercicio 7}
-
-```{r logrank-auto, eval=F}
-
-```
-
-
+tiene mayor probabilidad de supervivencia respecto al grupo de control;
+también se aprecia la gran diferencia entre las lineas medianas de los dos
+grupos, mientras la probabilidad de supervivencia es menor de 0.5 en el
+grupo de control para tiempos aproximadamente mayores a 40, en el grupo 
+que recibe el tratamiento dicha probabilidad es menor a 0.5 para tiempos
+aproximadamente mayores a 148 por lo que se puede concluir que el
+tratamiento con prednisolona es efectivo para combatir la hepatitis 
+crónica activa.
 
