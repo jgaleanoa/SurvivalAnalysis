@@ -52,9 +52,418 @@ library(survminer)
 
 \section{Ejercicio 1}
 
+\subsection{Literal a}
+
+Si se realiza un seguimiento durante 13 años a un grupo de adultos de al menos 60 años de edad para ver qué tanto tiempo permanecen vivos, el evento de interés en este caso es la muerte del adulto, además, la variable respuesta queda definida como: Tiempo que transcurre hasta que el adulto muere. En este caso se tiene que el tiempo de censura es fijo (13 años).
+
+\subsection{Literal b}
+
+Por otro lado, si un grupo de pacientes con un trasplante de corazón son monitoreados para ver cuánto tiempo sobreviven, el evento de interés es la muerte del paciente y la variable respuesta es el tiempo que pasa hasta que el paciente muere por complicaciones relacionadas a su trasplante.
+
 \section{Ejercicio 2}
 
+Se dispone de una base de datos relacionada a la Hepatitis Crónica Activa (CAH). Especificamente se tienen observaciones de 44 pacientes con dicha enfermedad, los cuales fueron divididos aleatoriamente en dos grupos donde el primero de ellos se corresponde a pacientes con la enfermedad a los cuales se les suministró un medicamento llamado prednisolona. Al segundo grupo o grupo de control, no se le proporcionó algún tipo de tratamiento. Los datos se ilustran a continuación:
+
+```{r cargando datos}
+CAH <- read.table("CAH.txt", header = T)
+colnames(CAH) <- c("ID", "Grupo", "Tiempo", "Censura")
+kable(head(CAH), caption="Disposición de los datos", align = 'c', longtable = T, booktab = T)
+```
+
+De allí, el tiempo de supervivencia se encuentra en unidades de meses.
+
+Con lo anterior, es de interés construir un estimador para $S(t)$ utilizando el estimador de Kaplan-Meier y el estimador de Nelson-Aalen.
+
+\subsection{Análisis descriptivo}
+
+Antes de comenzar el desarrollo para construir el estimador para $S(t)$, es conveniente hacer un rápido análisis descriptivo que de indicios primarios del comportamiento de los grupos de control y bajo la influencia de la Prednisolona. Por lo tanto se plantea el siguiente gráfico de cajas:
+
+```{r EDAED, fig.cap="Análisis descriptivo"}
+ggplot(CAH,aes(y=Tiempo,x=factor(Grupo),group=factor(Grupo),fill=factor(Grupo)))+
+  geom_boxplot()+
+  stat_summary(aes(y=Tiempo,x=factor(Grupo)),fun=mean, geom="point", shape=20, 
+               size=4, color="yellow")+
+  labs(x="", y="Semanas", title="Grupos vs tiempos de falla",fill="Grupo")+
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+De este último se puede apreciar inicialmente que el grupo 1 (al cual se le está proporcionando el medicamento), parece tener tiempos de falla superiores al grupo de control, lo cual indica que es esperable una supervivencia mayor en el mismo respecto al grupo 2. Sin embargo, se puede pensar en que la diferencia mencionada anteriormente puede no ser estadísticamente significativa, por lo cuál no se puede concluir terminantemente a partir de este gráfico.
+
+\subsection{Obteniendo el estimador de Kaplan-Meier}
+
+Hecho lo anterior, para iniciar con el desarrollo, se deben organizar los tiempos de falla para cada grupo por separado así:
+
+```{r construyendo km1}
+KM_df_g1 <- data.frame(tj = c(0,unique(subset(CAH, subset = Grupo==1 & Censura == 1)$Tiempo)))
+colnames(KM_df_g1) <- c("$t_j$")
+
+KM_df_g2 <- data.frame(tj = c(0, unique(subset(CAH, subset = Grupo==2 & Censura == 1)$Tiempo)))
+colnames(KM_df_g2) <- c("$t_j$")
+
+kable(
+  list(KM_df_g1, KM_df_g2),
+  caption = 'Tiempos ordenados grupos 1 y 2',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+
+
+```
+
+Seguidamente, se debe contar el número de pacientes bajo observación y a riesgo "$n_j$" en el j-ésimo intervalo. Se obtiene las siguientes tablas por grupo:
+
+```{r construyendo km2}
+KM_df_g1 <- cbind(KM_df_g1, nj = c(22,22,20,19,17,16,15,8,6,3))
+colnames(KM_df_g1) <- c("$t_j$", "$n_j$")
+
+KM_df_g2 <- cbind(KM_df_g2, nj = c(22,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7))
+colnames(KM_df_g2) <- c("$t_j$", "$n_j$")
+
+kable(
+  list(KM_df_g1, KM_df_g2),
+  caption = 'Estimando S(t) grupos 1 y 2',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+
+```
+
+Posteriormente, se deben calcular el número de fallas "$d_j$" en cada intervalo. La construcción de cada tabla por grupo se sigue mostrando a continuación:
+
+```{r construyendo km3}
+KM_df_g1 <- cbind(KM_df_g1, dj = c(0,2,1,1,1,1,2,1,1,1))
+colnames(KM_df_g1) <- c("$t_j$", "$n_j$", "$d_j$")
+
+KM_df_g2 <- cbind(KM_df_g2, dj = c(0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1))
+colnames(KM_df_g2) <- c("$t_j$", "$n_j$", "$d_j$")
+
+kable(
+  list(KM_df_g1, KM_df_g2),
+  caption = 'Estimando S(t) grupos 1 y 2',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Así, antes de proceder a calcular la estimación de la supervivencia en cada intervalo, en vías de determinar si la construcción de la tabla es correcta, se procede a calcular el número de censuras "$q_j$" y se obtiene la siguiente tabla:
+
+```{r construyendo km4}
+KM_df_g1 <- cbind(KM_df_g1, qj = c(0,0,0,1,0,0,5,1,2,2))
+colnames(KM_df_g1) <- c("$t_j$", "$n_j$", "$d_j$", "$q_j$")
+
+KM_df_g2 <- cbind(KM_df_g2, qj = c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6))
+colnames(KM_df_g2) <- c("$t_j$", "$n_j$", "$d_j$", "$q_j$")
+
+kable(
+  list(KM_df_g1, KM_df_g2),
+  caption = 'Estimando S(t) grupos 1 y 2',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Con esto, se logra ver que la suma de las columnas "$d_j$" y "$q_j$" suman 22 en cada grupo, que se corresponde con el número de pacientes en cada uno de los mismos. Por lo cual, se puede concluir que la construcción de la tabla es correcta. 
+
+Finalmente, para obtener la estimación de la supervivencia en cada intervalo para cada grupo, se hace uso del estimador de Kaplan-Meier, el cual se encuentra definido de la siguiente manera:
+
+$$
+\hat{S}_{KM}(t) = \prod_{j:t_j\leq t}\left[1-\frac{d_j}{n_j}\right]
+$$
+Con esto último, se tiene que para el primer grupo:
+
+\begin{itemize}
+\item Para $t_j = 0$, $\hat{S}_{KM}(0) = (1-0/22) = 1$
+\item Para $t_j = 2$, $\hat{S}_{KM}(2) = 1 \times (1-2/22) = 0.9091$
+\item Para $t_j = 12$, $\hat{S}_{KM}(12) = 0.9091 \times (1-1/20) = 0.8636$
+\item Para $t_j = 54$, $\hat{S}_{KM}(54) = 0.8636 \times (1-1/19) = 0.8181$
+\item Para $t_j = 68$, $\hat{S}_{KM}(68) = 0.8181 \times (1-1/17) = 0.7700$
+\item Para $t_j = 89$, $\hat{S}_{KM}(89) = 0.7700 \times (1-1/16) = 0.7219$
+\item Para $t_j = 96$, $\hat{S}_{KM}(96) = 0.7219 \times (1-2/15) = 0.6257$
+\item Para $t_j = 143$, $\hat{S}_{KM}(143) = 0.6257 \times (1-1/8) = 0.5475$
+\item Para $t_j = 146$, $\hat{S}_{KM}(146) = 0.5475 \times (1-1/6) = 0.4562$
+\item Para $t_j = 168$, $\hat{S}_{KM}(168) = 0.4562 \times (1-1/3) = 0.3041$
+\end{itemize}
+
+Y para el segundo grupo:
+
+\begin{itemize}
+\item Para $t_j = 0$, $\hat{S}_{KM}(0) = (1-0/22) = 1$
+\item Para $t_j = 2$, $\hat{S}_{KM}(2) = 1 \times (1-1/22) = 0.9545$
+\item Para $t_j = 3$, $\hat{S}_{KM}(3) = 0.9545 \times (1-1/21) = 0.9091$
+\item Para $t_j = 4$, $\hat{S}_{KM}(4) = 0.9091 \times (1-1/20) = 0.8636$
+\item Para $t_j = 7$, $\hat{S}_{KM}(7) = 0.8636 \times (1-1/19) = 0.8181$
+\item Para $t_j = 10$, $\hat{S}_{KM}(10) = 0.8181 \times (1-1/18) = 0.7727$
+\item Para $t_j = 22$, $\hat{S}_{KM}(22) = 0.7727 \times (1-1/17) = 0.7272$
+\item Para $t_j = 28$, $\hat{S}_{KM}(28) = 0.7272 \times (1-1/16) = 0.6818$
+\item Para $t_j = 29$, $\hat{S}_{KM}(29) = 0.6818 \times (1-1/15) = 0.6364$
+\item Para $t_j = 32$, $\hat{S}_{KM}(32) = 0.6364 \times (1-1/14) = 0.5909$
+\item Para $t_j = 37$, $\hat{S}_{KM}(37) = 0.5909 \times (1-1/13) = 0.5455$
+\item Para $t_j = 40$, $\hat{S}_{KM}(40) = 0.5455 \times (1-1/12) = 0.5$
+\item Para $t_j = 41$, $\hat{S}_{KM}(41) = 0.5 \times (1-1/11) = 0.4545$
+\item Para $t_j = 54$, $\hat{S}_{KM}(54) = 0.4545 \times (1-1/10) = 0.4091$
+\item Para $t_j = 61$, $\hat{S}_{KM}(61) = 0.4091 \times (1-1/9) = 0.3636$
+\item Para $t_j = 63$, $\hat{S}_{KM}(63) = 0.3636 \times (1-1/8) = 0.3182$
+\item Para $t_j = 71$, $\hat{S}_{KM}(71) = 0.3182 \times (1-1/7) = 0.2727$
+\end{itemize}
+
+Y así, finalmente se obtienen las tablas de vida con la estimación de $S(t)$ para cada grupo como se muestra a continuación:
+
+```{r construyendo km5}
+KM_df_g1 <- cbind(KM_df_g1, skm = c("1",0.9091,0.8636,0.8181,0.7700,0.7219,0.6257,0.5475,0.4562,0.3041))
+colnames(KM_df_g1) <- c("$t_j$", "$n_j$", "$d_j$", "$q_j$", "$\\hat{S}_{KM}(t_j)$")
+
+KM_df_g2 <- cbind(KM_df_g2, 
+                  skm = c("1",0.9545,0.9091,0.8636,0.8181,0.7727,0.7272,0.6818,0.6364,0.5909,0.5455,0.5,0.4545,0.4091,0.3636,0.3182,0.2727))
+colnames(KM_df_g2) <- c("$t_j$", "$n_j$", "$d_j$", "$q_j$", "$\\hat{S}_{KM}(t_j)$")
+
+kable(
+  list(KM_df_g1, KM_df_g2),
+  caption = 'Tablas de vida grupos 1 y 2',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+A primera vista se puede apreciar de las anteriores tablas que, el grupo de control parece tener una supervivencia menor respecto al grupo al cual se le proporcionó la Prednisolona. Más puntualmente, se nota que a partir de la semana 71, la probabilidad de supervivencia en este grupo es de 0.2727, lo cual es un resultado muy inferior respecto a lo conseguido en el grupo con medicación. Sin embargo, el comportamiento de los dos grupos no es muy claro a partir del resultado anterior, por ende, se pueden graficar las respectivas curvas de supervivencia estimadas como se muestra:
+
+\begin{figure}[H]
+  \includegraphics{KMbyhandplot.jpg}
+  \caption{Curvas de supervivencia con KM}
+\end{figure}
+
+De este gráfico se aprecia que, el estimador de Kaplan-Meier para la supervivencia indica que el grupo de control comienza a disminuír su supervivencia respecto al grupo medicado, a partir de la semana 25 aproximadamente, lo cual puede sugerir un efecto positivo de la prednisolona en el otro grupo. Sin embargo, este análisis preliminar debe ser comprobado estadísticamente mediante alguna prueba formal.
+
+\subsection{Usando el estimador de Nelson-Aalen}
+
+Motivado por la siguiente relación:
+
+$$
+\hat{S}_{KM}(t) \approx e^{-\hat{H}_{NA}(t)}
+$$
+El procedimiento anterior para obtener la curva de supervivencia en ambos grupos se puede desarrollar iniciando por estimar $H(t)$ mediante el estimador de Nelson-Aalen. Para este procedimiento se deben organizar las fallas para cada grupo como sigue:
+
+```{r construyendo na1}
+NA_df_g1 <- data.frame(Falla = c("1-2",3,4,5,6,"7-8",9,10,11),
+                       Meses = c(2,12,54,68,89,96,143,146,168))
+
+NA_df_g2 <- data.frame(Falla = c(1:16),
+                       Meses = c(2,3,4,7,10,22,28,29,32,37,40,41,54,61,63,71))
+
+kable(
+  list(NA_df_g1, NA_df_g2),
+  caption = 'Estimador de Nelson-Aalen grupos 1 y 2',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Seguidamente es necesario calcular la cantidad:
+
+$$
+\frac{\Delta\bar{N}(t_i)}{\bar{Y}(t_i)}=\frac{\text{Número de fallas en el intervalo }(t_i,t_{i+1})}{\text{Número de unidades bajo observación y a riesgo a }t_i}
+$$
+Así, para el grupo 1 se tiene que:
+
+\begin{itemize}
+\item $\hat{h}(2) = 2/22$
+\item $\hat{h}(12) = 1/20$
+\item $\hat{h}(54) = 1/19$
+\item $\hat{h}(68) = 1/17$
+\item $\hat{h}(89) = 1/16$
+\item $\hat{h}(96) = 2/15$
+\item $\hat{h}(143) = 1/8$
+\item $\hat{h}(146) = 1/6$
+\item $\hat{h}(2) = 1/3$
+\end{itemize}
+
+Y para el grupo 2:
+
+\begin{itemize}
+\item $\hat{h}(2) = 1/22$
+\item $\hat{h}(3) = 1/21$
+\item $\hat{h}(4) = 1/20$
+\item $\hat{h}(7) = 1/19$
+\item $\hat{h}(10) = 1/18$
+\item $\hat{h}(22) = 1/17$
+\item $\hat{h}(28) = 1/16$
+\item $\hat{h}(29) = 1/15$
+\item $\hat{h}(32) = 1/14$
+\item $\hat{h}(37) = 1/13$
+\item $\hat{h}(40) = 1/12$
+\item $\hat{h}(41) = 1/11$
+\item $\hat{h}(54) = 1/10$
+\item $\hat{h}(61) = 1/9$
+\item $\hat{h}(63) = 1/8$
+\item $\hat{h}(71) = 1/7$
+\end{itemize}
+
+Finalmente, para obtener $\hat{H}_{NA}(t)$ para cada grupo, basta con hacer una suma acumulativa de lo obtenido anteriormente. Por lo tanto, la tabla para el estimador de Nelson-Aalen en cada grupo queda así:
+
+```{r construyendo na2}
+NA_df_g1 <- cbind(NA_df_g1, ht = round(c(2/22,1/20,1/19,1/17,1/16,2/15,1/8,1/6,1/3),4),
+                  Ht = round(cumsum(c(2/22,1/20,1/19,1/17,1/16,2/15,1/8,1/6,1/3)),4))
+colnames(NA_df_g1) <- c("Falla","Meses","$\\hat{h}(t)$","$\\hat{H}_{NA}(t)$")
+
+NA_df_g2 <- cbind(NA_df_g2, ht = round(1/22:7,4),
+                  Ht = round(cumsum(c(1/22:7)),4))
+colnames(NA_df_g2) <- c("Falla","Meses","$\\hat{h}(t)$","$\\hat{H}_{NA}(t)$")
+
+kable(
+  list(NA_df_g1, NA_df_g2),
+  caption = 'Estimador de Nelson-Aalen grupos 1 y 2',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+
+```
+Con ambas tablas totalmente construídas y mediante la relación $\hat{S}_{KM}(t) \approx e^{-\hat{H}_{NA}(t)}$, se puede obtener una estimación de la supervivencia como sigue:
+
+```{r construyendo na3}
+NA_df_g1 <- cbind(NA_df_g1, st = round(exp(-NA_df_g1[,4]),4))
+colnames(NA_df_g1) <- c("Falla","Meses","$\\hat{h}(t)$","$\\hat{H}_{NA}(t)$",
+                        "$e^-\\hat{H}_{NA}(t)$")
+
+NA_df_g2 <- cbind(NA_df_g2, st = round(exp(-NA_df_g2[,4]),4))
+colnames(NA_df_g2) <- c("Falla","Meses","$\\hat{h}(t)$","$\\hat{H}_{NA}(t)$",
+                        "$e^-\\hat{H}_{NA}(t)$")
+
+kable(
+  list(NA_df_g1, NA_df_g2),
+  caption = 'Estimación de la supervivencia grupos 1 y 2',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+
+```
+Si se aprecia con detenimiento estas tablas para la estimación de $S(t)$, se puede notar el gran parecido con las tablas construídas directamente con el estimador de Kaplan-Meier. Esto da cuenta de que se pueden llegar a conclusiones similares usando distintos caminos de estimación, sin embargo se debe tener en cuenta siempre que la relación planteada entre el hazard acumulado y la supervivencia es naturalmente aproximada y por lo tanto hay que ser cautelosos con la precisión y las conclusiones.
+
+Para visualizar de manera adecuada la estimación obtenida, se procede a graficar los datos como sigue:
+
+\begin{figure}[H]
+  \includegraphics{NAbyhandplot.jpg}
+  \caption{Curvas de supervivencia con NA}
+\end{figure}
+
+El gráfico obtenido por este método permite concluir de manera muy similar a lo obtenido con el estimador de Kaplan-Meier. Parece que el estimador de Nelson-Aalen captura el mismo comportamiento entre los grupos, sugiriendo de este modo que el medicamento parece aumentar la supervivencia de los pacientes con hepatitis. Nuevamente se sugiere el uso de una prueba estadística para detectar diferencia entre las curvas. Dicha prueba debería ser robusta frente a la similaridad de las curvas para cada grupo al principio y al final del experimento. 
+
 \section{Ejercicio 3}
+
+Todo el desarrollo realizado en el punto anterior, se puede implementar fácilmente mediante el paquete survival de R. Las tablas de vida calculadas anteriormente se presentan como sigue:
+
+```{r replicando con paquete survival}
+Y <- Surv(time = CAH$Tiempo, event = CAH$Censura == 1)
+
+kmfit <- survfit(Y ~ CAH$Grupo)
+
+summ <- summary(kmfit, censored=FALSE)
+
+KM_df_g1_surv <- data.frame(tj = summ$time[1:9], nj = summ$n.risk[1:9],
+                            dj = summ$n.event[1:9], summ$n.censor[1:9],
+                            st = round(summ$surv[1:9],4))
+
+KM_df_g2_surv <- data.frame(tj = summ$time[10:25], nj = summ$n.risk[10:25],
+                            dj = summ$n.event[10:25], summ$n.censor[10:25],
+                            st = round(summ$surv[10:25],4))
+
+colnames(KM_df_g1_surv) <- c("$t_j$", "$n_j$", "$d_j$", "$q_j$", "$\\hat{S}_{KM}(t_j)$")
+colnames(KM_df_g2_surv) <- c("$t_j$", "$n_j$", "$d_j$", "$q_j$", "$\\hat{S}_{KM}(t_j)$")
+
+kable(
+  list(KM_df_g1_surv, KM_df_g2_surv),
+  caption = 'Tablas de vida Grupos 1 y 2 Vía KM',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Este resultado concuerda con lo obtenido a mano. 
+
+La gran ventaja de usar el paquete survival para realizar estimaciones sobre la supervivencia, es que esta herramienta permite graficar de una forma muy adecuada los resultado, y asimismo comparar el comportamiento de la supervivencia en ambos grupos. A continuación se presenta el gráfico con las curvas de supervivencia para cada grupo:
+
+```{r Graficando con survival, fig.cap="Curvas de supervivencia con KM"}
+KM_fit <- survfit(Surv(Tiempo, Censura) ~ Grupo, data = CAH)
+
+autoplot(KM_fit, type="fill",surv.alpha=0.9, 
+         surv.size=2,
+         conf.int.alpha=0.2,
+         censor.size=5,
+         censor.colour="purple")+ 
+  labs(x = "\n Tiempo de Supervivencia (Meses) ", y = "Probabilidad de supervivencia \n", 
+       title = "Curvas de Supervivencia Estimadas Para \n Pacientes de Hepatitis usando KM") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.title.x = element_text(face="bold",  size = 12),
+        axis.title.y = element_text(face="bold",  size = 12),
+        legend.title = element_text(face="bold", size = 10))
+```
+De este gráfico se aprecia inicialmente que, tanto al principio como al final del experimento, las curvas parecen juntarse lo suficiente para pensar que no hay suficiente diferencia entre los grupos de control y medicado. Sin embargo, este comportamiento ocurre durante muy poco tiempo, y para los tiempos de supervivencia entre 25 y 150 meses, las curvas se alejan sistemáticamente, lo cual indica un posible efecto del medicamento. Específicamente se nota una disminución muy marcada de la supervivencia en el grupo de control comparado con el grupo al cual se le suministró Prednisolona, lo cual podría dar indicios de efectividad en el medicamento. No obstante, esta diferencia entre las curvas debe probarse estadísticamente con una prueba formal.
+
+El paquete survival también permite, mediante la función survfit, obtener estimaciones del hazard acumulado. Conociendo además la relación mencionada anteriormente entre el hazard acumulado y la supervivencia, las tablas de vida se pueden obtener como sigue:
+
+```{r replicando con paquete survival2}
+NA_df_g1_surv <- data.frame(tj = round(summ$time[1:9],4) ,
+                            cumhaz = round(summ$cumhaz[1:9],4),
+                            st = round(exp(-summ$cumhaz[1:9]),4))
+
+NA_df_g2_surv <- data.frame(tj = round(summ$time[10:25],4),
+                            cumhaz = round(summ$cumhaz[10:25],4),
+                            st = round(exp(-summ$cumhaz[10:25]),4))
+
+colnames(NA_df_g1_surv) <- c("$t_j$","$\\hat{H}_{NA}(t)$","$e^-\\hat{H}_{NA}(t)$")
+colnames(NA_df_g2_surv) <- c("$t_j$","$\\hat{H}_{NA}(t)$","$e^-\\hat{H}_{NA}(t)$")
+
+kable(
+  list(NA_df_g1_surv, NA_df_g2_surv),
+  caption = 'Tablas de vida Grupos 1 y 2 Vía NA',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+Este resultado concuerda perfectamente con lo obtenido a mano.
+
+También se puede graficar el resultado usando esta aproximación:
+
+```{r Graficando con survival2, fig.cap="Curvas de supervivencia con NA"}
+NA_df_g1_surv <- data.frame(tj = round(c(summ$time[1:9],182),4) ,
+                            cumhaz = round(c(summ$cumhaz[1:9],1.07319753),4),
+                            st = round(exp(-c(summ$cumhaz[1:9],1.07319753)),4))
+
+NA_df_g2_surv <- data.frame(tj = round(c(summ$time[10:25],182),4),
+                            cumhaz = round(c(summ$cumhaz[10:25],1.24081325),4),
+                            st = round(exp(-c(summ$cumhaz[10:25],1.24081325)),4))
+
+ggplot(NA_df_g1_surv, aes(tj,st)) + 
+  geom_step(size=2, color = "pink")+ 
+  geom_step(aes(tj,st),data = NA_df_g2_surv, size = 2, color = "lightblue", direction = "vh")+ 
+  labs(x = "\n Tiempo de Supervivencia (Meses) ", y = "Probabilidad de supervivencia \n", 
+       title = "Curvas de Supervivencia Estimadas Para \n Pacientes de Hepatitis usando NA") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.title.x = element_text(face="bold",  size = 12),
+        axis.title.y = element_text(face="bold",  size = 12),
+        legend.title = element_text(face="bold", size = 10))
+```
+De este par de curvas se puede concluir de manera homóloga a lo obtenido usando el estimador de Kaplan-Meier, puesto que se evidencia exactamente el mismo comportamiento en las mismas en este caso usando la relación $\hat{S}_{KM}(t) \approx e^{-\hat{H}_{NA}(t)}$. Sin embargo, nuevamente se debe proceder con cuidado ante esta aproximación a la hora de dar recomendaciones.
 
 \section{Ejercicio 4}
 
