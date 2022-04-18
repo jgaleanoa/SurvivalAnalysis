@@ -466,8 +466,177 @@ ggplot(NA_df_g1_surv, aes(tj,st)) +
 De este par de curvas se puede concluir de manera homóloga a lo obtenido usando el estimador de Kaplan-Meier, puesto que se evidencia exactamente el mismo comportamiento en las mismas en este caso usando la relación $\hat{S}_{KM}(t) \approx e^{-\hat{H}_{NA}(t)}$. Sin embargo, nuevamente se debe proceder con cuidado ante esta aproximación a la hora de dar recomendaciones.
 
 \section{Ejercicio 4}
+\subsection{Estimador del Hazard Integrado}
+Tomando la siguiente relación:
+
+$$
+\hat{H}(t) \approx -log(\hat{S}_{KM}(t))
+$$
+Se procede a construir y a calcular manualmente $\hat{s}_{KM}(t)$
+
+```{r construyendo -log(km)1}
+tj_g1 <- c(0, 2, 12, 54, 68, 89, 96, 143, 146, 168)
+nj_g1 <- c(22, 22, 20, 19, 17, 16, 15, 8, 6, 3)
+dj_g1 <- c(0, 2, 1, 1, 1, 1, 2, 1, 1, 1)
+qj_g1 <- c(0, 0, 0, 1, 0, 0, 5, 1, 2, 2)
+
+less_log_KM_df_g1 <- cbind(tj_g1, nj_g1, dj_g1, qj_g1)
+colnames(less_log_KM_df_g1) <- c("$t_j$", "$n_j$", "$d_j$", "$q_j$")
+
+tj_g2 <- c(0, 2, 3, 4, 7, 10 , 22, 28, 29, 32, 27, 40, 41, 54, 61, 63, 71)
+nj_g2 <- c(22, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7)
+dj_g2 <- c(0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)
+qj_g2 <- c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6)
+
+
+less_log_KM_df_g2 <- cbind(tj_g2, nj_g2, dj_g2, qj_g2)
+colnames(less_log_KM_df_g2) <- c("$t_j$", "$n_j$", "$d_j$", "$q_j$")
+
+kable(
+  list(less_log_KM_df_g1, less_log_KM_df_g2),
+  caption = 'Estimando S(t) grupos 1 y 2',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+Finalmente, para obtener la estimación del Hazard integrado $\hat{H(t)}$ en cada intervalo para cada grupo, se hace uso del estimador de Kaplan-Meier aplicando $-log(\hat{S}_{KM}(t))$, Esto es:
+
+$$
+-log(\hat{S}_{KM}(t)) = -\sum_{j:t_j\leq t} log \left [1-\frac{d_j}{n_j}\right]\
+$$
+\begin{itemize}
+\item Para $t_j = 0$, $\hat{S}_{KM}(0) = (1-0/22) = 1$
+\item Para $t_j = 2$, $\hat{S}_{KM}(2) = 1 \times (1-2/22) = 0.9091$
+\item Para $t_j = 12$, $\hat{S}_{KM}(12) = 0.9091 \times (1-1/20) = 0.8636$
+\item Para $t_j = 54$, $\hat{S}_{KM}(54) = 0.8636 \times (1-1/19) = 0.8181$
+\item Para $t_j = 68$, $\hat{S}_{KM}(68) = 0.8181 \times (1-1/17) = 0.7700$
+\item Para $t_j = 89$, $\hat{S}_{KM}(89) = 0.7700 \times (1-1/16) = 0.7219$
+\item Para $t_j = 96$, $\hat{S}_{KM}(96) = 0.7219 \times (1-2/15) = 0.6257$
+\item Para $t_j = 143$, $\hat{S}_{KM}(143) = 0.6257 \times (1-1/8) = 0.5475$
+\item Para $t_j = 146$, $\hat{S}_{KM}(146) = 0.5475 \times (1-1/6) = 0.4562$
+\item Para $t_j = 168$, $\hat{S}_{KM}(168) = 0.4562 \times (1-1/3) = 0.3041$
+\end{itemize}
+
+Y para el segundo grupo:
+
+\begin{itemize}
+\item Para $t_j = 0$, $\hat{S}_{KM}(0) = (1-0/22) = 1$
+\item Para $t_j = 2$, $\hat{S}_{KM}(2) = 1 \times (1-1/22) = 0.9545$
+\item Para $t_j = 3$, $\hat{S}_{KM}(3) = 0.9545 \times (1-1/21) = 0.9091$
+\item Para $t_j = 4$, $\hat{S}_{KM}(4) = 0.9091 \times (1-1/20) = 0.8636$
+\item Para $t_j = 7$, $\hat{S}_{KM}(7) = 0.8636 \times (1-1/19) = 0.8181$
+\item Para $t_j = 10$, $\hat{S}_{KM}(10) = 0.8181 \times (1-1/18) = 0.7727$
+\item Para $t_j = 22$, $\hat{S}_{KM}(22) = 0.7727 \times (1-1/17) = 0.7272$
+\item Para $t_j = 28$, $\hat{S}_{KM}(28) = 0.7272 \times (1-1/16) = 0.6818$
+\item Para $t_j = 29$, $\hat{S}_{KM}(29) = 0.6818 \times (1-1/15) = 0.6364$
+\item Para $t_j = 32$, $\hat{S}_{KM}(32) = 0.6364 \times (1-1/14) = 0.5909$
+\item Para $t_j = 37$, $\hat{S}_{KM}(37) = 0.5909 \times (1-1/13) = 0.5455$
+\item Para $t_j = 40$, $\hat{S}_{KM}(40) = 0.5455 \times (1-1/12) = 0.5$
+\item Para $t_j = 41$, $\hat{S}_{KM}(41) = 0.5 \times (1-1/11) = 0.4545$
+\item Para $t_j = 54$, $\hat{S}_{KM}(54) = 0.4545 \times (1-1/10) = 0.4091$
+\item Para $t_j = 61$, $\hat{S}_{KM}(61) = 0.4091 \times (1-1/9) = 0.3636$
+\item Para $t_j = 63$, $\hat{S}_{KM}(63) = 0.3636 \times (1-1/8) = 0.3182$
+\item Para $t_j = 71$, $\hat{S}_{KM}(71) = 0.3182 \times (1-1/7) = 0.2727$
+\end{itemize}
+
+\subsection(Estimador de Nelson-Aalen)
 
 \section{Ejercicio 5}
+```{r}
+data <-read.table(file='CAH.txt',header=T)
+df=data.frame(data)
+
+KM_fit <- survfit(Surv(time, status) ~ group, data = df)
+g1 <- df[df[,2]==1,]
+
+KM_fit1 <- survfit(Surv(time, status) ~ group, data = g1)
+
+CUMHAZ_1<- -log(KM_fit1$surv)
+
+haz_1 <- data.frame(
+  time = c(KM_fit1$time),
+#  inverse_KM = CUMHAZ_1,
+  N_A = CUMHAZ_1,
+  group="1",
+  method="Inverse_KM"
+)
+
+g2=df[df[,2]==2,]
+
+KM_fit2 <- survfit(Surv(time, status) ~ group, data = g2)
+
+CUMHAZ_2<- -log(KM_fit2$surv)
+
+haz_2 <- data.frame(
+  time = c(KM_fit2$time),
+#  inverse_KM = CUMHAZ_2,
+  N_A=CUMHAZ_2,
+  group="2",
+  method="Inverse_KM"
+)
+
+haz<-rbind(haz_1,haz_2)
+
+plot1<-ggplot(haz, aes(x = time, y = N_A,group=group,color=group)) + 
+  geom_step(size=2)+ 
+  labs(x = "Days of Follow-Up", 
+       y = "Cumulative Hazard",
+       title = "Cumulative Hazard Function via Inverse K-M")
+plot1
+```
+
+```{r}
+library(gridExtra)
+h_st1 <- KM_fit1$n.event /  KM_fit1$n.risk
+H_est1 <- cumsum(h_st1)
+
+h_st2 <- KM_fit2$n.event /  KM_fit2$n.risk
+H_est2 <- cumsum(h_st2)
+
+NA_1 <- data.frame(
+  time = c(KM_fit1$time),
+#  NA_Est = H_est1,
+N_A=H_est1,
+  group="1_NA",
+  method="N-A"
+)
+
+NA_2 <- data.frame(
+  time = c(KM_fit2$time),
+#  NA_Est = H_est2,
+N_A=H_est2,
+  group="0_NA",
+  method="N-A"
+)
+
+NA_<-rbind(NA_1, NA_2)
+
+plot2<-ggplot(NA_, aes(x = time, y = N_A,group=group,color=group)) + 
+  geom_step(size=2)+ 
+  labs(x = "Days of Follow-Up", 
+       y = "Cumulative Hazard",
+       title = "Cumulative Hazard Function via Inverse NA")
+plot2
+
+grid.arrange(plot1,plot2,ncol=2)
+
+
+all<-rbind(haz, NA_)
+
+ggplot(all, aes(x = time, y = N_A,group=group,color=group)) + 
+  geom_step(size=2)+ 
+  labs(x = "Days of Follow-Up", 
+       y = "Cumulative Hazard",
+       title = "Cumulative Hazard Function via Inverse NA")
+
+ggplot(all, aes(x = time, y = N_A,group=group,color=method)) + 
+  geom_step(size=2)+ 
+  labs(x = "Days of Follow-Up", 
+       y = "Cumulative Hazard",
+       title = "Cumulative Hazard Function via Inverse NA")
+```
 
 \section{Ejercicio 6}
 
