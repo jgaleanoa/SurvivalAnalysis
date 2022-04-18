@@ -33,6 +33,7 @@ library(latex2exp)
 library(ggfortify)
 library(survival)
 library(survminer)
+library(gridExtra)
 ```
 
 ```{=tex}
@@ -507,43 +508,126 @@ $$
 -log(\hat{S}_{KM}(t)) = -\sum_{j:t_j\leq t} log \left [1-\frac{d_j}{n_j}\right]\
 $$
 \begin{itemize}
-\item Para $t_j = 0$, $\hat{S}_{KM}(0) = (1-0/22) = 1$
-\item Para $t_j = 2$, $\hat{S}_{KM}(2) = 1 \times (1-2/22) = 0.9091$
-\item Para $t_j = 12$, $\hat{S}_{KM}(12) = 0.9091 \times (1-1/20) = 0.8636$
-\item Para $t_j = 54$, $\hat{S}_{KM}(54) = 0.8636 \times (1-1/19) = 0.8181$
-\item Para $t_j = 68$, $\hat{S}_{KM}(68) = 0.8181 \times (1-1/17) = 0.7700$
-\item Para $t_j = 89$, $\hat{S}_{KM}(89) = 0.7700 \times (1-1/16) = 0.7219$
-\item Para $t_j = 96$, $\hat{S}_{KM}(96) = 0.7219 \times (1-2/15) = 0.6257$
-\item Para $t_j = 143$, $\hat{S}_{KM}(143) = 0.6257 \times (1-1/8) = 0.5475$
-\item Para $t_j = 146$, $\hat{S}_{KM}(146) = 0.5475 \times (1-1/6) = 0.4562$
-\item Para $t_j = 168$, $\hat{S}_{KM}(168) = 0.4562 \times (1-1/3) = 0.3041$
+\item Para $t_j = 0$, $-log(\hat{S}_{KM}(0)) = -log(1-0/22) = 0$
+\item Para $t_j = 2$, $-log(\hat{S}_{KM}(2)) = 0 - log(1-2/22) = 0.0953$
+\item Para $t_j = 12$, $-log(\hat{S}_{KM}(12)) = 0.0953  -log(1-1/20) = 0.1466$
+\item Para $t_j = 54$, $-log(\hat{S}_{KM}(54)) = 0.1466  -log(1-1/19) = 0.2007$
+\item Para $t_j = 68$, $-log(\hat{S}_{KM}(68)) = 0.2007 -log(1-1/17) = 0.2613$
+\item Para $t_j = 89$, $-log(\hat{S}_{KM}(89)) = 0.2613 -log(1-1/16) = 0.3258$
+\item Para $t_j = 96$, $-log(\hat{S}_{KM}(96)) = 0.3258 -log(1-2/15) = 0.4689$
+\item Para $t_j = 143$, $-log(\hat{S}_{KM}(143)) = 0.4689 -log(1-1/8) = 0.6024$
+\item Para $t_j = 146$, $-log(\hat{S}_{KM}(146)) = 0.6024 -log(1-1/6) = 0.7847$
+\item Para $t_j = 168$, $-log(\hat{S}_{KM}(168)) = 0.7847 -log(1-1/3) = 1.1902$
 \end{itemize}
 
 Y para el segundo grupo:
 
 \begin{itemize}
-\item Para $t_j = 0$, $\hat{S}_{KM}(0) = (1-0/22) = 1$
-\item Para $t_j = 2$, $\hat{S}_{KM}(2) = 1 \times (1-1/22) = 0.9545$
-\item Para $t_j = 3$, $\hat{S}_{KM}(3) = 0.9545 \times (1-1/21) = 0.9091$
-\item Para $t_j = 4$, $\hat{S}_{KM}(4) = 0.9091 \times (1-1/20) = 0.8636$
-\item Para $t_j = 7$, $\hat{S}_{KM}(7) = 0.8636 \times (1-1/19) = 0.8181$
-\item Para $t_j = 10$, $\hat{S}_{KM}(10) = 0.8181 \times (1-1/18) = 0.7727$
-\item Para $t_j = 22$, $\hat{S}_{KM}(22) = 0.7727 \times (1-1/17) = 0.7272$
-\item Para $t_j = 28$, $\hat{S}_{KM}(28) = 0.7272 \times (1-1/16) = 0.6818$
-\item Para $t_j = 29$, $\hat{S}_{KM}(29) = 0.6818 \times (1-1/15) = 0.6364$
-\item Para $t_j = 32$, $\hat{S}_{KM}(32) = 0.6364 \times (1-1/14) = 0.5909$
-\item Para $t_j = 37$, $\hat{S}_{KM}(37) = 0.5909 \times (1-1/13) = 0.5455$
-\item Para $t_j = 40$, $\hat{S}_{KM}(40) = 0.5455 \times (1-1/12) = 0.5$
-\item Para $t_j = 41$, $\hat{S}_{KM}(41) = 0.5 \times (1-1/11) = 0.4545$
-\item Para $t_j = 54$, $\hat{S}_{KM}(54) = 0.4545 \times (1-1/10) = 0.4091$
-\item Para $t_j = 61$, $\hat{S}_{KM}(61) = 0.4091 \times (1-1/9) = 0.3636$
-\item Para $t_j = 63$, $\hat{S}_{KM}(63) = 0.3636 \times (1-1/8) = 0.3182$
-\item Para $t_j = 71$, $\hat{S}_{KM}(71) = 0.3182 \times (1-1/7) = 0.2727$
+\item Para $t_j = 0$, $-log(\hat{S}_{KM}(0)) = -log(1-0/22) = 0$
+\item Para $t_j = 2$, $-log(\hat{S}_{KM}(2)) = 0 -log(1-1/22) = 0.0465$
+\item Para $t_j = 3$, $-log(\hat{S}_{KM}(3)) = 0.0465 -log(1-1/21) = 0.0953$
+\item Para $t_j = 4$, $-log(\hat{S}_{KM}(4)) = 0.0953 -log(1-1/20) = 0.1466$
+\item Para $t_j = 7$, $-log(\hat{S}_{KM}(7)) = 0.1466 -log(1-1/19) = 0.2007$
+\item Para $t_j = 10$, $-log(\hat{S}_{KM}(10)) = 0.2007 -log(1-1/18) = 0.2578$
+\item Para $t_j = 22$, $-log(\hat{S}_{KM}(22)) = 0.2578 -log(1-1/17) = 0.3185$
+\item Para $t_j = 28$, $-log(\hat{S}_{KM}(28)) = 0.3185 -log(1-1/16) = 0.3830$
+\item Para $t_j = 29$, $-log(\hat{S}_{KM}(29)) = 0.3830 -log(1-1/15) = 0.4520$
+\item Para $t_j = 32$, $-log(\hat{S}_{KM}(32)) = 0.4520 -log(1-1/14) = 0.5261$
+\item Para $t_j = 37$, $-log(\hat{S}_{KM}(37)) = 0.5261 -log(1-1/13) = 0.6061$
+\item Para $t_j = 40$, $-log(\hat{S}_{KM}(40)) = 0.6061 -log(1-1/12) = 0.6931$
+\item Para $t_j = 41$, $-log(\hat{S}_{KM}(41)) = 0.6931 -log(1-1/11) = 0.7885$
+\item Para $t_j = 54$, $-log(\hat{S}_{KM}(54)) = 0.7885 -log(1-1/10) = 0.8938$
+\item Para $t_j = 61$, $-log(\hat{S}_{KM}(61)) = 0.8938 -log(1-1/9) = 1.0116$
+\item Para $t_j = 63$, $-log(\hat{S}_{KM}(63)) = 1.0116 -log(1-1/8) = 1.1451$
+\item Para $t_j = 71$, $-log(\hat{S}_{KM}(71)) = 1.1451 -log(1-1/7) = 1.2993$
 \end{itemize}
 
-\subsection(Estimador de Nelson-Aalen)
+```{r construyendo -log(km)2}
+tj_g1 <- c(0, 2, 12, 54, 68, 89, 96, 143, 146, 168)
+nj_g1 <- c(22, 22, 20, 19, 17, 16, 15, 8, 6, 3)
+dj_g1 <- c(0, 2, 1, 1, 1, 1, 2, 1, 1, 1)
+qj_g1 <- c(0, 0, 0, 1, 0, 0, 5, 1, 2, 2)
+less_log_g1 <- c(0, 0.0953, 0.1466, 0.2007, 0.2613, 0.3258, 0.4689, 0.6025, 0.7848, 1.1903)
+
+less_log_KM_df_g1 <- cbind(tj_g1, nj_g1, dj_g1, qj_g1, less_log_g1)
+colnames(less_log_KM_df_g1) <- c("$t_j$", "$n_j$", "$d_j$", "$q_j$", "$-log( \\hat{S}(t) ) $")
+
+tj_g2 <- c(0, 2, 3, 4, 7, 10 , 22, 28, 29, 32, 27, 40, 41, 54, 61, 63, 71)
+nj_g2 <- c(22, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7)
+dj_g2 <- c(0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)
+qj_g2 <- c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6)
+less_log_g2 <-c(0, 0.0465, 0.0953, 0.1466, 0.2007, 0.2578, 0.3185, 0.3830, 0.4520, 0.5261, 0.6061, 0.6931, 0.7885, 0.8938, 1.0116, 1.1451, 1.2993)
+
+less_log_KM_df_g2 <- cbind(tj_g2, nj_g2, dj_g2, qj_g2, less_log_g2)
+colnames(less_log_KM_df_g2) <- c("$t_j$", "$n_j$", "$d_j$", "$q_j$", "$-log( \\hat{S}(t) ) $")
+
+kable(
+  list(less_log_KM_df_g1, less_log_KM_df_g2),
+  caption = 'Estimando H(t) grupos 1 y 2',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+\subsection{Estimador de Nelson-Aalen}
+
+Se procede a construir y a calcular manualmente el estimador $\hat{N}_{NA}(t)$
+
+```{r, construyendo NA}
+fallas_g1 <- c("1-2", "3", "4", "5", "6", "7-8", "9", "10", "11")
+meses_g1 <- c(2, 12, 54, 68, 89, 96, 143, 146, 168)
+h_g1 <-c("2/12 = 0.0909", "1/20 = 0.0500", "1/19=0.0526", "1/17 = 0.0588", "1/16 = 0.0625", "2/15 = 0.1333", "1/8 = 0.1250","1/6 = 0.1667", "1/3 = 0.3333" )
+
+H_g1 <- c("2/12 = 0.0909", "0.0909 + 1/20 = 0.1409", "0.1409 + 1/19 = 0.1935", "0.1935 + 1/17 = 0.2524", "0.2524 + 1/16 = 0.3149", "0.3149 + 2/15 = 0.4482", "0.4482 + 1/8 = 0.5732", "0.5732 + 1/6 = 0.7399", "0.7399 * 1/3 = 1.0732")
+
+H_NA_g1 <- cbind(fallas_g1, meses_g1, h_g1, H_g1)
+colnames(H_NA_g1)<- c("Falla","Meses","$\\hat{h}(t)$","$\\hat{H}_{NA}(t)$")
+
+
+fallas_g2 <- c(1:16)
+meses_g2 <-c(2, 3, 4, 7, 10, 22, 28, 29, 32, 37, 40, 41,
+             54, 61, 63, 71)
+h_g2 <- c("1/22 = 0.0455", "1/21 = 0.0476", "1/20 = 0.0500", "1/19 = 0.0526", "1/18 = 0.0556", "1/17 = 0.0588", "1/16 = 0.0625", "1/15 = 0.0667", "1/14 =  0.0714", "1/13 = 0.0769", "1/12 = 0.0833", "1/11 = 0.0909", "1/10 = 0.1000", "1/9 = 0.1111", "1/8 = 0.1250", "1/7 = 0.1429")
+
+H_g2 <- c("1/22 = 0.0455", 
+          "0.0455 + 1/21 = 0.0931",
+          "0.0931 + 1/20 = 0.1431", 
+          "0.1431 + 1/19 = 0.1957",
+          "0.1957 + 1/18 = 0.2513",
+          "0.2513 + 1/17 = 0.3101",
+          "0.3101 + 1/16 = 0.3726",
+          "0.3726 + 1/15 = 0.4393",
+          "0.4393 + 1/14 = 0.5107",
+          "0.5107 + 1/13 = 0.5876",
+          "0.5876 + 1/12 = 0.6709",
+          "0.6709 + 1/11 = 0.7618",
+          "0.7618 + 1/10 = 0.8618",
+          "0.8618 + 1/9 = 0.9730", 
+          "0.9730 + 1/8 = 1.0980", 
+          "1.0980 + 1/7 = 1.2408"
+        )
+
+H_NA_g2 <- cbind(fallas_g2, meses_g2, h_g2, H_g2)
+colnames(H_NA_g2)<- c("Falla","Meses","$\\hat{h}(t)$","$\\hat{H}_{NA}(t)$")
+
+kable(
+  list(H_NA_g1, H_NA_g2),
+  caption = 'Estimando Nelson-Aalen H(t) grupos 1 y 2',
+  booktab = T, 
+  align = 'c',
+  escape = F
+)%>%
+  kable_styling(latex_options = "HOLD_position")
+``` 
+
 
 \section{Ejercicio 5}
+
+Contrastando todo la implementacion manual de la estimacion del Hazard Integrado $\hat{H}(t)$ usando R como sofware estadistico y el paquete *survivel* como descriptor grafico. 
+
+
 ```{r}
 data <-read.table(file='CAH.txt',header=T)
 df=data.frame(data)
@@ -581,14 +665,13 @@ haz<-rbind(haz_1,haz_2)
 
 plot1<-ggplot(haz, aes(x = time, y = N_A,group=group,color=group)) + 
   geom_step(size=2)+ 
-  labs(x = "Days of Follow-Up", 
-       y = "Cumulative Hazard",
-       title = "Cumulative Hazard Function via Inverse K-M")
+  labs(x = "Meses de seguimiento", 
+       y = "Hazard Acumulado",
+       title = "Hazard Acumulado usando -Log(KM)")
 plot1
 ```
 
-```{r}
-library(gridExtra)
+```{r, warning=FALSE}
 h_st1 <- KM_fit1$n.event /  KM_fit1$n.risk
 H_est1 <- cumsum(h_st1)
 
@@ -607,7 +690,7 @@ NA_2 <- data.frame(
   time = c(KM_fit2$time),
 #  NA_Est = H_est2,
 N_A=H_est2,
-  group="0_NA",
+  group="2_NA",
   method="N-A"
 )
 
@@ -615,27 +698,25 @@ NA_<-rbind(NA_1, NA_2)
 
 plot2<-ggplot(NA_, aes(x = time, y = N_A,group=group,color=group)) + 
   geom_step(size=2)+ 
-  labs(x = "Days of Follow-Up", 
-       y = "Cumulative Hazard",
-       title = "Cumulative Hazard Function via Inverse NA")
+  labs(x = "Meses de seguimiento", 
+       y = "Hazard Acumulado",
+       title = "Hazard Acumulado usando NA")
 plot2
-
-grid.arrange(plot1,plot2,ncol=2)
 
 
 all<-rbind(haz, NA_)
 
-ggplot(all, aes(x = time, y = N_A,group=group,color=group)) + 
-  geom_step(size=2)+ 
-  labs(x = "Days of Follow-Up", 
-       y = "Cumulative Hazard",
-       title = "Cumulative Hazard Function via Inverse NA")
+#ggplot(all, aes(x = time, y = N_A,group=group,color=group)) + 
+#  geom_step(size=2)+ 
+#  labs(x = "Meses de seguimiento", 
+#       y = "Cumulative Hazard",
+#       title = "Cumulative Hazard Function via Inverse NA")
 
 ggplot(all, aes(x = time, y = N_A,group=group,color=method)) + 
   geom_step(size=2)+ 
-  labs(x = "Days of Follow-Up", 
-       y = "Cumulative Hazard",
-       title = "Cumulative Hazard Function via Inverse NA")
+  labs(x = "Meses de seguimiento", 
+       y = "Hazard Acumulado",
+       title = "Hazard Acumulado -Log(KM) vs NA")
 ```
 
 \section{Ejercicio 6}
