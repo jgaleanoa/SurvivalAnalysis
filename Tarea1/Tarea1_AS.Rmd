@@ -473,7 +473,8 @@ Tomando la siguiente relación:
 $$
 \hat{H}(t) \approx -log(\hat{S}_{KM}(t))
 $$
-Se procede a construir y a calcular manualmente $\hat{s}_{KM}(t)$
+Se procede a construir y a calcular manualmente.
+ $\hat{s}_{KM}(t)$
 
 ```{r construyendo -log(km)1}
 tj_g1 <- c(0, 2, 12, 54, 68, 89, 96, 143, 146, 168)
@@ -484,7 +485,7 @@ qj_g1 <- c(0, 0, 0, 1, 0, 0, 5, 1, 2, 2)
 less_log_KM_df_g1 <- cbind(tj_g1, nj_g1, dj_g1, qj_g1)
 colnames(less_log_KM_df_g1) <- c("$t_j$", "$n_j$", "$d_j$", "$q_j$")
 
-tj_g2 <- c(0, 2, 3, 4, 7, 10 , 22, 28, 29, 32, 27, 40, 41, 54, 61, 63, 71)
+tj_g2 <- c(0, 2, 3, 4, 7, 10 , 22, 28, 29, 32, 37, 40, 41, 54, 61, 63, 71)
 nj_g2 <- c(22, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7)
 dj_g2 <- c(0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)
 qj_g2 <- c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6)
@@ -502,7 +503,7 @@ kable(
 )%>%
   kable_styling(latex_options = "HOLD_position")
 ```
-Finalmente, para obtener la estimación del Hazard integrado $\hat{H(t)}$ en cada intervalo para cada grupo, se hace uso del estimador de Kaplan-Meier aplicando $-log(\hat{S}_{KM}(t))$, Esto es:
+Finalmente, para obtener la estimación del Hazard integrado $\hat{H(t)}$ en cada intervalo para cada grupo, se hace uso del estimador de Kaplan-Meier aplicando. $-log(\hat{S}_{KM}(t))$. Esto es:
 
 $$
 -log(\hat{S}_{KM}(t)) = -\sum_{j:t_j\leq t} log \left [1-\frac{d_j}{n_j}\right]\
@@ -552,7 +553,7 @@ less_log_g1 <- c(0, 0.0953, 0.1466, 0.2007, 0.2613, 0.3258, 0.4689, 0.6025, 0.78
 less_log_KM_df_g1 <- cbind(tj_g1, nj_g1, dj_g1, qj_g1, less_log_g1)
 colnames(less_log_KM_df_g1) <- c("$t_j$", "$n_j$", "$d_j$", "$q_j$", "$-log( \\hat{S}(t) ) $")
 
-tj_g2 <- c(0, 2, 3, 4, 7, 10 , 22, 28, 29, 32, 27, 40, 41, 54, 61, 63, 71)
+tj_g2 <- c(0, 2, 3, 4, 7, 10 , 22, 28, 29, 32, 37, 40, 41, 54, 61, 63, 71)
 nj_g2 <- c(22, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7)
 dj_g2 <- c(0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)
 qj_g2 <- c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6)
@@ -571,9 +572,19 @@ kable(
   kable_styling(latex_options = "HOLD_position")
 ```
 
+Con una vista rápida a la tabla anterior se puede evidenciar que el grupo de control (grupo2) tiene un  mayor número de fallas en promedio. Respecto al grupo que se les suministra prednisolona(grupo1).
+
+
+\begin{figure}[H]
+  \includegraphics{H_-log_KM.jpeg}
+  \caption{Hazard acumulado usando -log(KM)}
+\end{figure}
+
+Con el gráfico estimado manualmente se puede apreciar que tan rápido crece en promedio la posibilidad de falla en el grupo de control(grupo2). Respecto al grupo tratado con prednisolona(grupo1).
+
 \subsection{Estimador de Nelson-Aalen}
 
-Se procede a construir y a calcular manualmente el estimador $\hat{N}_{NA}(t)$
+Se procede a construir y a calcular manualmente el estimador $\hat{H}_{NA}(t)$
 
 ```{r, construyendo NA}
 fallas_g1 <- c("1-2", "3", "4", "5", "6", "7-8", "9", "10", "11")
@@ -621,11 +632,18 @@ kable(
 )%>%
   kable_styling(latex_options = "HOLD_position")
 ``` 
+\begin{figure}[H]
+  \includegraphics{H_NA.jpeg}
+  \caption{Curvas de supervivencia con NA}
+\end{figure}
+
+
+Si se comparan los gráficos y tablas estimadas del Hazard acumulado manualmente con la relación $-log(\hat{S}_{KM}(t))$ y el $\hat{H}_{NA}(t)$. Podemos concluir que dichas descripciones se aproximan mucho. O en pocas palabras que ambas estimaciones nos indican que el tiempo promedio de falla es mucho mayor para el grupo de control respecto al grupo tratado con prednisolona.
 
 
 \section{Ejercicio 5}
 
-Contrastando todo la implementacion manual de la estimacion del Hazard Integrado $\hat{H}(t)$ usando R como sofware estadistico y el paquete *survivel* como descriptor grafico. 
+Contrastando todo la implementación manual de la estimación del Hazard Integrado $\hat{H}(t)$ usando R como sofware estadístico y el paquete *survivel* como descriptor gráfico se obtiene: 
 
 
 ```{r}
@@ -703,7 +721,12 @@ plot2<-ggplot(NA_, aes(x = time, y = N_A,group=group,color=group)) +
        title = "Hazard Acumulado usando NA")
 plot2
 
+```
 
+Las estimaciones arrojadas por el software estadístico R y las realizadas manualmente  de $-log(\hat{S}_{KM}(t))$ y el $\hat{H}_{NA}(t)$ del Hazard Acumulado son aproximadamente iguales y ambas nos indican. Que los pacientes que pertenecen al grupo de control tiene una posibilidad mucho mayor de falla en un tiempo menor, que los pacientes que son tratados con prednisolona. Esto quiere decir que se evidencia una mejora en las personas que son expuestas a dicho tratamiento. 
+
+
+```{r}
 all<-rbind(haz, NA_)
 
 #ggplot(all, aes(x = time, y = N_A,group=group,color=group)) + 
@@ -718,6 +741,7 @@ ggplot(all, aes(x = time, y = N_A,group=group,color=method)) +
        y = "Hazard Acumulado",
        title = "Hazard Acumulado -Log(KM) vs NA")
 ```
+Del gráfico anterior se busca comparar los dos métodos usados el $-log(\hat{S}_{KM}(t))$ y el $\hat{H}_{NA}(t)$ para calcular el Hazard acumulado. Dichas estimaciones usando el R se asemejan mucho y nos permiten afirmar dichas conclusiones mencionadas con anterioridad. 
 
 \section{Ejercicio 6}
 
