@@ -88,8 +88,9 @@ ggplot(CAH,aes(y=Tiempo,x=factor(Grupo),group=factor(Grupo),fill=factor(Grupo)))
   theme_minimal()+
   theme(plot.title = element_text(hjust = 0.5))
 ```
-De este último se puede apreciar inicialmente que el grupo 1 (al cual se le está proporcionando el medicamento), parece tener tiempos de falla superiores al grupo de control, lo cual indica que es esperable una supervivencia mayor en el mismo respecto al grupo 2. Sin embargo, se puede pensar en que la diferencia mencionada anteriormente puede no ser estadísticamente significativa, por lo cuál no se puede concluir terminantemente a partir de este gráfico.
+De este último se puede apreciar inicialmente que el grupo 1 (al cual se le está proporcionando el medicamento), parece tener tiempos de falla superiores al grupo de control, lo cual indica que es esperable una supervivencia mayor en el mismo respecto al grupo 2. Sin embargo, se puede pensar que la diferencia mencionada anteriormente puede no ser estadísticamente significativa, por lo cuál no se puede concluir terminantemente a partir de este gráfico.
 
+\newpage
 \subsection{Obteniendo el estimador de Kaplan-Meier}
 
 Hecho lo anterior, para iniciar con el desarrollo, se deben organizar los tiempos de falla para cada grupo por separado así:
@@ -363,9 +364,10 @@ Para visualizar de manera adecuada la estimación obtenida, se procede a grafica
 
 El gráfico obtenido por este método permite concluir de manera muy similar a lo obtenido con el estimador de Kaplan-Meier. Parece que el estimador de Nelson-Aalen captura el mismo comportamiento entre los grupos, sugiriendo de este modo que el medicamento parece aumentar la supervivencia de los pacientes con hepatitis. Nuevamente se sugiere el uso de una prueba estadística para detectar diferencia entre las curvas. Dicha prueba debería ser robusta frente a la similaridad de las curvas para cada grupo al principio y al final del experimento. 
 
+\newpage
 \section{Ejercicio 3}
 
-Todo el desarrollo realizado en el punto anterior, se puede implementar fácilmente mediante el paquete survival de R. Las tablas de vida calculadas anteriormente se presentan como sigue:
+Todo el desarrollo realizado en el punto anterior, se puede implementar fácilmente mediante el paquete `survival` de R. Las tablas de vida calculadas anteriormente se presentan como sigue:
 
 ```{r replicando con paquete survival}
 Y <- Surv(time = CAH$Tiempo, event = CAH$Censura == 1)
@@ -415,9 +417,9 @@ autoplot(KM_fit, type="fill",surv.alpha=0.9,
         axis.title.y = element_text(face="bold",  size = 12),
         legend.title = element_text(face="bold", size = 10))
 ```
-De este gráfico se aprecia inicialmente que, tanto al principio como al final del experimento, las curvas parecen juntarse lo suficiente para pensar que no hay suficiente diferencia entre los grupos de control y medicado. Sin embargo, este comportamiento ocurre durante muy poco tiempo, y para los tiempos de supervivencia entre 25 y 150 meses, las curvas se alejan sistemáticamente, lo cual indica un posible efecto del medicamento. Específicamente se nota una disminución muy marcada de la supervivencia en el grupo de control comparado con el grupo al cual se le suministró Prednisolona, lo cual podría dar indicios de efectividad en el medicamento. No obstante, esta diferencia entre las curvas debe probarse estadísticamente con una prueba formal.
+De este gráfico se aprecia inicialmente que, tanto al principio como al final del experimento, las curvas parecen juntarse lo suficiente para pensar que no hay suficiente diferencia entre los grupos de control y medicado. Sin embargo, este comportamiento ocurre durante muy poco tiempo, y para los tiempos de supervivencia entre 25 y 150 meses, las curvas se alejan sistemáticamente, lo cual indica un posible efecto del medicamento. Específicamente se nota una disminución muy marcada de la supervivencia en el grupo de control comparado con el grupo al cual se le suministró prednisolona, lo cual podría dar indicios de efectividad en el medicamento. No obstante, esta diferencia entre las curvas debe probarse estadísticamente con una prueba formal.
 
-El paquete survival también permite, mediante la función survfit, obtener estimaciones del hazard acumulado. Conociendo además la relación mencionada anteriormente entre el hazard acumulado y la supervivencia, las tablas de vida se pueden obtener como sigue:
+El paquete survival también permite, mediante la función `survfit()`, obtener estimaciones del hazard acumulado. Conociendo además la relación mencionada anteriormente entre el hazard acumulado y la supervivencia, las tablas de vida se pueden obtener como sigue:
 
 ```{r replicando con paquete survival2}
 NA_df_g1_surv <- data.frame(tj = round(summ$time[1:9],4) ,
@@ -582,6 +584,7 @@ Con una vista rápida a la tabla anterior se puede evidenciar que el grupo de co
 
 Con el gráfico estimado manualmente se puede apreciar que tan rápido crece en promedio la posibilidad de falla en el grupo de control(grupo2). Respecto al grupo tratado con prednisolona(grupo1).
 
+\newpage
 \subsection{Estimador de Nelson-Aalen}
 
 Se procede a construir y a calcular manualmente el estimador $\hat{H}_{NA}(t)$
@@ -640,10 +643,10 @@ kable(
 
 Si se comparan los gráficos y tablas estimadas del Hazard acumulado manualmente con la relación $-log(\hat{S}_{KM}(t))$ y el $\hat{H}_{NA}(t)$. Podemos concluir que dichas descripciones se aproximan mucho. O en pocas palabras que ambas estimaciones nos indican que el tiempo promedio de falla es mucho mayor para el grupo de control respecto al grupo tratado con prednisolona.
 
-
+\newpage
 \section{Ejercicio 5}
 
-Contrastando todo la implementación manual de la estimación del Hazard Integrado $\hat{H}(t)$ usando R como sofware estadístico y el paquete *survivel* como descriptor gráfico se obtiene: 
+Contrastando todo la implementación manual de la estimación del Hazard Integrado $\hat{H}(t)$ usando R como sofware estadístico y el paquete `survival` como descriptor gráfico se obtiene: 
 
 
 ```{r}
@@ -685,7 +688,10 @@ plot1<-ggplot(haz, aes(x = time, y = N_A,group=group,color=group)) +
   geom_step(size=2)+ 
   labs(x = "Meses de seguimiento", 
        y = "Hazard Acumulado",
-       title = "Hazard Acumulado usando -Log(KM)")
+       title = "Hazard Acumulado usando -Log(KM)") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
 plot1
 ```
 
@@ -718,9 +724,10 @@ plot2<-ggplot(NA_, aes(x = time, y = N_A,group=group,color=group)) +
   geom_step(size=2)+ 
   labs(x = "Meses de seguimiento", 
        y = "Hazard Acumulado",
-       title = "Hazard Acumulado usando NA")
+       title = "Hazard Acumulado usando NA") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
 plot2
-
 ```
 
 Las estimaciones arrojadas por el software estadístico R y las realizadas manualmente  de $-log(\hat{S}_{KM}(t))$ y el $\hat{H}_{NA}(t)$ del Hazard Acumulado son aproximadamente iguales y ambas nos indican. Que los pacientes que pertenecen al grupo de control tiene una posibilidad mucho mayor de falla en un tiempo menor, que los pacientes que son tratados con prednisolona. Esto quiere decir que se evidencia una mejora en las personas que son expuestas a dicho tratamiento. 
@@ -739,7 +746,9 @@ ggplot(all, aes(x = time, y = N_A,group=group,color=method)) +
   geom_step(size=2)+ 
   labs(x = "Meses de seguimiento", 
        y = "Hazard Acumulado",
-       title = "Hazard Acumulado -Log(KM) vs NA")
+       title = "Hazard Acumulado -Log(KM) vs NA") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 Del gráfico anterior se busca comparar los dos métodos usados el $-log(\hat{S}_{KM}(t))$ y el $\hat{H}_{NA}(t)$ para calcular el Hazard acumulado. Dichas estimaciones usando el R se asemejan mucho y nos permiten afirmar dichas conclusiones mencionadas con anterioridad. 
 
@@ -765,7 +774,8 @@ H_0: \forall_t \hspace{.1in} S_1(t) = S_2(t) \\
 H_1: \exists_t \hspace{.1in} S_1(t) \neq S_2(t)
 \end{cases}
 $$
-Se usa como estadístico de prueba
+siendo el grupo 1 aquel que recibe el tratamiento mientras que el 2 es
+un grupo de control. Se usa como estadístico de prueba
 
 $$
 Log-rank = \frac{(O_i - E_i)^2}{Var(O_i - E_i)} \sim \chi_{(k-1)}^2
@@ -857,13 +867,13 @@ n2j <- c(22, 21, 20, 19, 18, 17, 17, 16, 15, 14, 13, 12, 11, 10, 9, 9,
             #     #           #        #           #     #     #
 logrank_data <- data.frame(tj, m1j, m2j, n1j, n2j)
 
-kable(cbind(logrank_data[1:19, ], logrank_data[20:38, ])[1:13, ], 
+kable(cbind(logrank_data[1:19, ], logrank_data[20:38, ])[1:9, ], 
       booktabs = T, longtable = T, escape = F,
       col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$",
                     "$n_{1j}$", "$n_{2j}$",
                     "$t_j$", "$m_{1j}$", "$m_{2j}$",
                     "$n_{1j}$", "$n_{2j}$"))
-kable(cbind(logrank_data[1:19, ], logrank_data[20:38, ])[14:19, ], 
+kable(cbind(logrank_data[1:19, ], logrank_data[20:38, ])[10:19, ], 
       booktabs = T, longtable = T, escape = F,
       col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$",
                     "$n_{1j}$", "$n_{2j}$",
@@ -881,11 +891,11 @@ siguiente
 logrank_data %<>% 
   mutate(e1j = (n1j/(n1j + n2j))*(m1j + m2j),
          e2j = (n2j/(n1j + n2j))*(m1j + m2j))
-kable(logrank_data[1:25, ], longtable = T, booktabs = T, escape = F,
+kable(logrank_data[1:21, ], longtable = T, booktabs = T, escape = F,
       col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$",
                     "$n_{1j}$", "$n_{2j}$", "$e_{1j}$", "$e_{2j}$"),
       digits = 4)
-kable(logrank_data[26:38, ], longtable = T, booktabs = T, escape = F,
+kable(logrank_data[22:38, ], longtable = T, booktabs = T, escape = F,
       col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$",
                     "$n_{1j}$", "$n_{2j}$", "$e_{1j}$", "$e_{2j}$"),
       digits = 4, row.names = F)
@@ -905,12 +915,12 @@ final_row[c(1, 4:5)] <- NA
 
 logrank_data <- rbind(logrank_data, final_row)
 
-kable(logrank_data[1:20, ], longtable = T, booktabs = T, escape = F,
+kable(logrank_data[1:15, ], longtable = T, booktabs = T, escape = F,
       col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$", "$n_{1j}$",
                     "$n_{2j}$", "$e_{1j}$", "$e_{2j}$",
                     "$m_{1j} - e_{1j}$", "$m_{2j} - e_{2j}$"),
       digit = 4)
-kable(logrank_data[21:39, ], longtable = T, booktabs = T, escape = F,
+kable(logrank_data[16:39, ], longtable = T, booktabs = T, escape = F,
       col.names = c("$t_j$", "$m_{1j}$", "$m_{2j}$", "$n_{1j}$",
                     "$n_{2j}$", "$e_{1j}$", "$e_{2j}$",
                     "$m_{1j} - e_{1j}$", "$m_{2j} - e_{2j}$"),
@@ -952,7 +962,7 @@ y debido a que $Log-rank \sim \chi^2_{(1)}$ se calcula el valor-p como
 $\mathbb{P}\left(\chi^2_{(1)} > `r round(logrank_stat, 4)`\right) = `r pchisq(logrank_stat, 1, lower.tail = F) %>% round(4)`$ 
 con lo cual a un nivel de significancia usual de 0.05 se rechaza $H_0$
 y se concluye que existe evidencia muestral suficiente para pensar 
-$S_1(t) \neq S_2(t)$.
+$S_1(t) \neq S_2(t)$ para algún $t$.
 
 En términos del problema, esto quiere decir que existe un grupo de
 pacientes el cual tiene tiempos de supervivencia mayores al otro sin
@@ -1006,7 +1016,7 @@ KM_cah <- survfit(Surv(time, status) ~ group, data = cah)
 
 # El buen stack overflow nunca falla xd
 custom_theme <- function() {
-  theme_bw() %+replace%
+  theme_minimal() %+replace%
     theme(
       plot.title = element_text(hjust=0.5)
     )
