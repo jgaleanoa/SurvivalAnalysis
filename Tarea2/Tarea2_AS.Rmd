@@ -45,12 +45,10 @@ library(gridExtra)
 \listoffigures
 \newpage
 ```
-
 ```{=tex}
 \pagestyle{myheadings}
 \setcounter{page}{4}
 ```
-
 <!-- Gaviria -->
 
 \section{Ejercicio 1}
@@ -58,6 +56,51 @@ library(gridExtra)
 <!-- Juanjo -->
 
 \section{Ejercicio 2}
+
+Los siguientes datos se refieren a dos grupos de mujeres con cáncer de
+ovario. En total hay 34 mujeres. Cada número representa el tiempo de
+progreso de la enfermedad en días. El símbolo + representa un dato
+censurado. La estructura de la base de datos se muestra a continuación:
+
+```{r Datos-Ej3}
+time <- c(28, 89, 175, 195, 309, 377, 393, 421,
+          447, 462, 709, 744, 770, 1106, 1206, # Fin grupo 1
+          34, 88, 137, 199, 280, 291, 299, 300, 309,
+          351, 358, 369, 369, 370, 375, 382, 429, 451, 1119)
+status <- c(rep(1, 5), rep(0, 4), 1, rep(0, 5), # Fin grupo 1
+            rep(1, 6), 0, 0, 1,
+            rep(1, 7), 0, 1, 0)
+group <- c(rep(1, 15), rep(2, 19))
+datos3 <- data.frame(Tiempo = time, 
+                     Estado = status, 
+                     Grupo = factor(group))
+set.seed(7)
+idx <- sample(1:dim(datos3)[1], 5)
+kable(datos3[idx, ], longtable = T, align = "c",
+      booktabs = T, row.names = F)
+```
+
+En este problema el grupo 1 representa pacientes con tumor de bajo grado mientras que el grupo 2 corresponde a tumor de alto grado.
+
+\subsection{Literal a}
+
+Previamente se han obtenido estimaciones de funciones hazard gracias a
+métodos de estimación como el de Nelson - Aalen o Kaplan - Meier gracias
+a la relación $\hat{H}{(t)} \approx e^{-\hat{H}_{NA}(t)}$, en esta
+situación se estimará por medio del modelo de regresión Weibull
+
+$$
+log(h(t)) = -log(\sigma) + \alpha log(t) + \dot{\beta}_0 + \sum_{i=1}^k \dot{\beta}_k x_k
+$$
+donde $\dot{\beta_j} = -\frac{\beta_j}{\sigma}$ y $\alpha = \frac{1}{\sigma} - 1$
+
+```{r Modelo-Weibull}
+mod_wei <- survreg(Surv(Tiempo, Estado) ~ Grupo,
+                   dist = "weibull", data = datos3)
+```
+
+
+\subsection{Literal b}
 
 <!-- Santiago -->
 
@@ -72,7 +115,3 @@ library(gridExtra)
 \section{Ejercicio 6}
 
 \section{Ejercicio 7}
-
-
-
-
