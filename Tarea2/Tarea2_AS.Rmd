@@ -49,10 +49,366 @@ library(gridExtra)
 \pagestyle{myheadings}
 \setcounter{page}{4}
 ```
-<!-- Gaviria -->
 
 \section{Ejercicio 1}
 
+\subsection{Presentación de los datos y EDAED}
+
+Para este caso, se dispone de una base de datos relacionada a 26 pacientes con cáncer de ovario. Los datos en cuestión presentan la siguiente estructura:
+
+```{r cargando datos punto 1}
+ovarian <- survival::ovarian
+
+kable(head(ovarian),
+      caption = 'Ovarian Data',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Donde:
+
+- futime: Tiempo de supervivencia o censura
+- fustat: Presencia de censura (0 si el dato corresponde a una censura)
+- age: Edad del paciente
+- resid.ds: Enfermedad residual presente (1=no, 2=sí)
+- rx: Grupo de tratamiento
+- ecog.ps: Estado funcional de ECOG (1 es mejor)
+
+
+Con esto, lo que se desea conseguir es ajustar como mínimo tres modelos paramétricos de la familia AFT para los datos anteriores. 
+
+Así pues, para iniciar con la búsqueda de los modelos paramétricos, es necesario ver el comportamiento de la variable que describe el tiempo de supervivencia o censura, por lo cuál se plantea el siguiente gráfico:
+
+```{r graficando densidad, fig.cap="Densidad de la respuesta"}
+ggplot(ovarian, aes(x = futime))+
+   geom_density(color="darkblue", fill="lightblue") +
+   labs(x = "Tiempo de supervivencia o censura", y="Densidad", 
+        title = "Densidad de la respuesta") +
+    theme_minimal()+
+    theme(plot.title = element_text(hjust = 0.5), 
+        axis.title.x = element_text(face="bold",  size = 12),
+        axis.title.y = element_text(face="bold",  size = 12),
+        legend.title = element_text(face="bold", size = 10))
+```
+
+De este último podemos apreciar que, el tiempo de supervivencia o censura puede ser modelado de forma adecuada por una distribución Weibull, una Log-Logística o incluso una distribución Log-Normal gracias a su forma de campana.
+
+Adicionalmente, es pertinente realizar un análisis descriptivo que pueda mostrar o dar una idea inicial del efecto o relación de las covariables con el tiempo de supervivencia o censura. Se plantean los siguientes gráficos:
+
+```{r  graficando descriptivo, fig.cap="Análisis descriptivo"}
+p1 <- ggplot(ovarian, aes(age, futime)) + 
+  geom_point(color = "red", size = 3) +
+  labs(x = "Age", y = "Tiempo", title = "Tiempo vs Age") +
+  theme_minimal()+
+    theme(plot.title = element_text(hjust = 0.5))
+
+
+p2 <- ggplot(ovarian, aes(fill = factor(resid.ds), y = futime)) + 
+  geom_boxplot() +
+  labs(y = "Tiempo", fill = "Resid.ds", title = "Tiempo vs Resid.ds") +
+    theme_minimal()+
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.title.x=element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank())
+
+p3 <- ggplot(ovarian, aes(fill = factor(rx), y = futime)) + 
+  geom_boxplot() +
+  labs(y = "Tiempo", fill = "Rx", title = "Tiempo vs Rx") +
+    theme_minimal()+
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.title.x=element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank())
+
+p4 <- ggplot(ovarian, aes(fill = factor(ecog.ps), y = futime)) + 
+  geom_boxplot() +
+  labs(y = "Tiempo", fill = "Ecog.ps", title = "Tiempo vs Ecog.ps") +
+    theme_minimal()+
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.title.x=element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank())
+
+ggpubr::ggarrange(p1,p2,p3,p4)
+```
+
+Se observa de estos que, a medida que la edad del paciente aumenta, el tiempo de supervivencia o censura disminuye, esta relación inversa es clara y sugiere un comportamiento destacable entre la respuesta y la covariable en cuestión.
+
+Por otro lado, se puede apreciar que los pacientes que poseen una enfermedad residual, parecen tener un tiempo de supervivencia menor. Sin embargo, hay que destacar que las cajas se traslapan ligeramente, por lo cual, es esperable encontrar que esta covariable puede tener un efecto leve o no significativo en los modelos para explicar el tiempo de supervivencia. 
+
+Finalmente, para las demás covariables se aprecia un traslape total de las cajas en sus diferentes niveles. Esto puede dar cuenta de que dichos predictores serán insignificantes en los modelos que se propongan.
+
+\subsection{Ajuste inicial de modelos}
+
+Dicho lo anterior, se puede partir por plantear modelos donde se especifique que la variable respuesta en cuestión posee cada una de las distribuciones anteriormente mencionadas. Para hacer una selección de variables, se inicia por plantear el modelo con todos los regresores disponibles. El resultado obtenido para cada modelo se muestra a continuación: 
+
+```{r comenzando ajuste}
+modwei <- survreg(Surv(futime, fustat)~age+resid.ds+rx+ecog.ps,
+        data = ovarian, dist = "weibull")
+
+modloglog <- survreg(Surv(futime, fustat)~age+resid.ds+rx+ecog.ps,
+        data = ovarian, dist = "loglogistic")
+
+modlognor <- survreg(Surv(futime, fustat)~age+resid.ds+rx+ecog.ps,
+        data = ovarian, dist = "lognormal")
+
+summod <- function(modelo){
+  summarymod <- as.data.frame(summary(modelo)$table)
+  colnames(summarymod) <- c("Estimación", "Error Estándar", "Z", "Valor P")
+  return(summarymod)
+}
+
+summodwei <- summod(modwei)
+summodloglog <- summod(modloglog)
+summodlognor <- summod(modlognor)
+```
+
+Para estimar el modelo: 
+
+$$
+Log(T) = \beta_0 + \beta_1age+\beta_2resid.ds+\beta_3rx+\beta_4ecog.ps+\sigma\epsilon
+$$
+$$
+T \sim Weibull(\lambda,\beta)
+$$
+Se obtiene que:
+
+```{r modelo estimado weibull}
+kable(summodwei,
+      caption = 'Modelo Weibull',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Comenzando por el resultado obtenido modelando la respuesta bajo una distribución Weibull, se puede apreciar que, según el valor P para cada covariable y usando un nivel de significancia tradicional de $\alpha = 0.05$, el único factor significativo para el modelo es la edad del paciente "age".
+
+Seguidamente, para estimar el modelo: 
+
+$$
+Log(T) = \beta_0 + \beta_1age+\beta_2resid.ds+\beta_3rx+\beta_4ecog.ps+\sigma\epsilon
+$$
+$$
+T \sim Loglogis(\mu,\sigma)
+$$
+Se obtiene que:
+
+```{r modelo estimado loglog}
+kable(summodloglog,
+      caption = 'Modelo Log-Logístico',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Por otro lado, observando lo conseguido por el modelo Log-Logístico, se puede notar un resultado similar a lo obtenido con el modelo Weibull. Nótese que en este caso, el valor P asociado a la covariable "rx" es polémico dada su cercanía con el nivel de significancia, sin embargo, para evitar conclusiones erróneas, se procede a eliminar la misma del modelo tal y como con las demás exceptuando "age".
+
+Por otro lado, para estimar el modelo: 
+
+$$
+Log(T) = \beta_0 + \beta_1age+\beta_2resid.ds+\beta_3rx+\beta_4ecog.ps+\sigma\epsilon
+$$
+$$
+T \sim Lognormal(\mu,\sigma^2)
+$$
+Se obtiene que:
+
+```{r modelo estimado lognor}
+kable(summodlognor,
+      caption = 'Modelo Log-Normal',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Finalmente, según el modelo Log-Normal se llega a que de nuevo la covariable que denota la edad de los pacientes es significativa. En este caso "rx" (grupo de tratamiento) se asocia con un valor P un tanto menor al nivel de significancia fijado. Por ello se toma finalmente la decisión de incluirla en el modelo depurado para esta distribución.
+
+\subsection{Modelos depurados}
+
+Con lo anterior, se procede a reajustar los tres modelos con los regresores estadísticamente significativos para con estos, evaluar el desempeño de cada uno y elegir según alguna métrica el más adecuado. 
+
+```{r depurando modelos}
+modwei2 <- survreg(Surv(futime, fustat)~age, data = ovarian, dist = "weibull")
+
+modloglog2 <- survreg(Surv(futime, fustat)~age, data = ovarian, dist = "loglogistic")
+
+modlognor2 <- survreg(Surv(futime, fustat)~age+rx, data = ovarian, dist = "lognormal")
+
+summodwei2 <- summod(modwei2)
+summodloglog2 <- summod(modloglog2)
+summodlognor2 <- summod(modlognor2)
+```
+
+Estimando nuevamente: 
+
+$$
+Log(T) = \beta_0 + \beta_1age+\sigma\epsilon
+$$
+$$
+T \sim Weibull(\lambda,\beta)
+$$
+Se obtiene que:
+
+```{r modelo estimado weibull2}
+kable(summodwei2,
+      caption = 'Modelo Weibull',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Por otro lado considerando el modelo: 
+
+$$
+Log(T) = \beta_0 + \beta_1age+\sigma\epsilon
+$$
+$$
+T \sim Loglogis(\mu,\sigma)
+$$
+Se obtiene:
+
+```{r modelo estimado loglog2}
+kable(summodloglog2,
+      caption = 'Modelo Log-Logístico',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Finalmente, con el modelo:
+
+$$
+Log(T) = \beta_0 + \beta_1age + \beta_2rx + \sigma\epsilon
+$$
+$$
+T \sim Lognormal(\mu,\sigma^2)
+$$
+Se llega a:
+
+```{r modelo estimado lognor2}
+kable(summodlognor2,
+      caption = 'Modelo Log-Normal',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+\subsection{Evaluación de desempeño}
+
+Una vez depurados, es interesante poner a competir los tres modelos obtenidos para escoger el que mejor desempeño muestre de acuerdo a un critero elegido. En este caso y por simplicidad computacional, la métrica usada para comparar los modelos será el criterio de información de Akaike (AIC), donde el modelo que presente el menor valor será el que mejor desempeño evidencie y así, el elegido para procedimientos o usos posteriores del mismo.
+
+Dicho lo anterior, se presenta el siguiente resultado:
+
+```{r comparando desempeño}
+AICs <- data.frame(Modelo = c("Weibull", "Log-Logístico", "Log-Normal"),
+                   AIC = c(AIC(modwei2),AIC(modloglog2),AIC(modlognor2)))
+kable(AICs,
+      caption = 'Resultados de desempeño',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+Con lo anterior se llega a que el modelo Log-Normal es el que mejor desempeño muestra de acuerdo al AIC.
+
+\subsection{Control de confusión}
+
+Note que el modelo obtenido en el procedimiento anterior involucra dos covariables "age" y "rx" ambas significativas con una significancia usual. Con esto, lo que se desea hacer ahora es realizar un control de confusión con las covariables no incluídas y determinar posibles confusores.
+
+Iniciando por la variable "ecog.ps", se ajusta el modelo conseguido ahora incluyendo dicho regresor y se analiza el cambio porcentual en las estimaciones de los demás parámetros asociados a la componente sistemática. El resultado es como sigue:
+
+```{r analizando confusion}
+modlognorconf1 <- survreg(Surv(futime, fustat)~age+rx+ecog.ps, 
+                          data = ovarian, dist = "lognormal")
+
+perchange <- function(coefsin, coefcon){
+  return(paste(round(abs((coefsin-coefcon)/coefcon)*100,2), " °/.", sep = ""))
+}
+conf1 <- data.frame(sinecog = modlognor2$coefficients[2:3],
+                    conecog = modlognorconf1$coefficients[2:3],
+                    cambio = perchange(modlognor2$coefficients[2:3],
+                                       modlognorconf1$coefficients[2:3]))
+colnames <- c("Parámetro estimado sin ecog.ps",
+               "Parámetro estimado con ecog.ps",
+               "Cambio Porcentual")
+
+kable(conf1,
+      caption = 'Control de confusión con ecog.ps',
+      col.names = colnames,
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Note que el cambio porcentual en las estimaciones de ambos parámetros asociados a las covariables "age" y "rx" después de incluír "ecog.ps" no es mayor al 10%, por lo tanto se concluye que "ecog.ps" no es una variable de confusión. 
+
+Se considera ahora el regresor "resid.ds" para evaluar una posible confusión. Siguiendo el mismo procedimiento anterior se obtiene lo siguiente:
+
+```{r analizando confusion 2}
+modlognorconf2 <- survreg(Surv(futime, fustat)~age+rx+resid.ds, 
+                          data = ovarian, dist = "lognormal")
+
+conf2 <- data.frame(sinecog = modlognor2$coefficients[2:3],
+                    conecog = modlognorconf2$coefficients[2:3],
+                    cambio = perchange(modlognor2$coefficients[2:3],
+                                       modlognorconf2$coefficients[2:3]))
+colnames <- c("Parámetro estimado sin resid.ds",
+               "Parámetro estimado con resid.ds",
+               "Cambio Porcentual")
+
+kable(conf2,
+      caption = 'Control de confusión con resid.ds',
+      col.names = colnames,
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Del resultado conseguido se concluye que, dado que el cambio porcentual en las estimaciones de los parámetros asociados a las covariables "age" y "rx" es en ambos casos mayor al 10%, el regresor "resid.ds" que se relaciona con la presencia de una enfermedad residual en el paciente, debe ser incluído en el modelo. Nótese que en el análisis descriptivo esta covariable fué candidata a una covariable significativa para explicar el tiempo de supervivencia de los pacientes, sin embargo en la depuración fué descartada del modelo. Ahora, en el control de confusión reingresa al mismo y se concluye como importante para explicar la respuesta.
+
+Finalmente, se considera la interacción entre las variables "resid.ds" y "ecog.ps" para evaluar una posible confusión sobre las covariables "age" y "rx". Se obtiene el siguiente resultado:
+
+```{r analizando confusion 3}
+modlognorconf3 <- survreg(Surv(futime, fustat)~age+rx+resid.ds:ecog.ps, 
+                          data = ovarian, dist = "lognormal")
+
+
+conf3 <- data.frame(sinecog = modlognor2$coefficients[2:3],
+                    conecog = modlognorconf3$coefficients[2:3],
+                    cambio = perchange(modlognor2$coefficients[2:3],
+                                       modlognorconf3$coefficients[2:3]))
+colnames <- c("Parámetro estimado sin interacción",
+               "Parámetro estimado con interacción",
+               "Cambio Porcentual")
+
+kable(conf3,
+      caption = 'Control de confusión con interacción',
+      col.names = colnames,
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Y así, dado que el cambio porcentual en ningún caso es igual o mayor al 10%, se considera que es innecesario añadir la interacción en cuestión al modelo. Con esto, el modelo final obtenido para los datos de cáncer de ovario es el siguiente:
+
+$$
+\widehat{Log(T)} = 10.31 - 0.07age + 0.60rx - 0.53resid.ds
+$$
+$$
+T \sim Lognormal(\mu,\sigma^2)
+$$
 <!-- Juanjo -->
 
 \section{Ejercicio 2}
@@ -203,8 +559,113 @@ ggplot(rejilla, aes(Tiempo, Ht)) +
 
 \section{Ejercicio 4}
 
+Para tener en cuenta en los ejercicios 4 y 5:
+
+Sean $X$ e $Y$ variables aleatorias tales que $X \sim N(\mu, \sigma^2)$ y $Y \sim Lognormal(\mu, \sigma^2)$, luego se tiene que:
+
+\begin{equation*}
+\begin{split}
+f_X(x) & = \frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(x-\mu)^2}{2\sigma^2}},\ x \in \mathbb{R} \\
+f_Y(y) & = \frac{1}{\sqrt{2\pi}\sigma y}e^{-\frac{(log(y)-\mu)^2}{2\sigma^2}},\ y>0
+\end{split}
+\end{equation*}
+
+Sea $Y = log(T) \sim N(\mu, \sigma^2)$, veamos que $T \sim Lognormal(\mu, \sigma^2)$:
+
+Por el teorema de cambio de variable se sabe que si $Y=g(x)$ con $X$ e $Y$ continuas, se sigue que:
+
+$$
+f_Y(y) = f_X(g^-1(y))\left|\frac{dy^-1}{dy}\right|
+$$
+Luego:
+
+\begin{equation*}
+\begin{split}
+f_T(t) & = f_Y(log(T))\left|\frac{dlog(t)}{dt}\right|, \ t>0 \\
+       & = \frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(log(t)-\mu)^2}{2\sigma^2}}\left|\frac{1}{t}\right| \ t>0 \\
+       & = \frac{1}{\sqrt{2\pi}\sigma t}e^{-\frac{(log(t)-\mu)^2}{2\sigma^2}},\ t>0
+\end{split}
+\end{equation*}
+
+Lo que implica que $T \sim Lognormal(\mu, \sigma^2)$.
+
+Por lo tanto si $log(T) \sim N(\mu, \sigma^2)$ $\Rightarrow$ $T \sim Lognormal(\mu, \sigma^2)$
+
 \section{Ejercicio 5}
+
+Sea $T$ una variable aleatoria continua. Veamos que si $T \sim Lognormal(\mu, \sigma^2)$ $\Rightarrow$ $log(T) \sim N(\mu, \sigma^2)$:
+
+Nuevamente, sea $Y=log(T)$, así $T=e^Y$.
+
+\begin{equation*}
+\begin{split}
+f_Y(Y) & = f_T(e^Y)\left|\frac{d}{dY}e^Y\right|,\ Y \in \mathbb{R} \\
+       & = \frac{1}{\sqrt{2\pi}\sigma e^Y}e^{-\frac{(log(e^Y)-\mu)^2}{2\sigma^2}}|e^Y|,\ Y \in \mathbb{R} \\
+       & = \frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(Y-\mu)^2}{2\sigma^2}},\ Y \in \mathbb{R}
+\end{split}
+\end{equation*}
+
+Lo que implica que $Y = log(T) \sim N(\mu, \sigma^2)$.
+
+Por lo tanto si $T \sim Lognormal(\mu, \sigma^2)$ $\Rightarrow$ $log(T) \sim N(\mu, \sigma^2)$.
+
+Visto eso, se puede afirmar:
+
+Sea T una variable aleatoria continua, luego $T \sim Lognormal(\mu, \sigma^2)$ $\iff$ $log(T) \sim N(\mu, \sigma^2)$
 
 \section{Ejercicio 6}
 
+Para tener en cuenta en los ejercicios 6 y 7:
+
+Sean $X$ e $Y$ variables aleatorias continuas tales que $X \sim Logis(\mu, \sigma)$ y $Y \sim Loglogis(\mu, \sigma)$. Luego:
+
+\begin{equation*}
+\begin{split}
+f_X(x) & = \frac{e^{\frac{-(x-\mu)}{\sigma}}}{\sigma\left(1+e^{\frac{-(x-\mu)}{\sigma}}\right)^2} = \frac{1}{\sigma}\frac{1}{\left(e^{\frac{(x-\mu)}{2\sigma}}+e^{\frac{-(x-\mu)}{2\sigma}}\right)^2}, \ x \in \mathbb{R} \\
+f_Y(y)  & =  \frac{y^{\frac{1}{\sigma}-1}}{\sigma}\frac{1}{(e^{\mu/2\sigma}+y^{1/\sigma}e^{-\mu/2\sigma})^2}, \ y>0
+\end{split}
+\end{equation*}
+
+Sea $T$ una variable aleatoria tal que $T \sim Loglogis(\mu, \sigma)$. Veamos que $Y = log(T) \sim Logis(\mu, \sigma)$.
+
+Se tiene que:
+
+\begin{equation*}
+\begin{split}
+f_Y(y) & = f_T(e^y)\left|\frac{d}{dy}e^y\right|,\ y \in \mathbb{R} \\
+       & = \frac{e^{\frac{y}{\sigma}-y}}{\sigma}\frac{1}{\left(e^{\frac{\mu}{2\sigma}}+e^{\frac{y}{\sigma}}e^{-\frac{\mu}{2\sigma}}\right)^2}|e^y|,\ y \in \mathbb{R} \\
+       & = \frac{1}{\sigma}\frac{1}{[e^{-\frac{y}{2\sigma}}\left(e^{\frac{\mu}{2\sigma}}+e^{\frac{y}{\sigma}}e^{-\frac{\mu}{2\sigma}}\right)]^2},\ y \in \mathbb{R} \\
+       & = \frac{1}{\sigma}\frac{1}{\left(e^{\frac{\mu-y}{2\sigma}}+e^{\frac{y-\mu}{2\sigma}}\right)^2},\ y \in \mathbb{R} \\
+       & = \frac{1}{\sigma}\frac{1}{\left(e^{\frac{y-\mu}{2\sigma}}+e^{-\frac{y-\mu}{2\sigma}}\right)^2},\ y \in \mathbb{R}
+\end{split}
+\end{equation*}
+
+Por lo que $Y \sim Logis(\mu,\sigma)$.
+
+Por lo tanto si $T$ es una variable aleatoria continua tal que $T \sim Loglogis(\mu,\sigma)$ $\Rightarrow$ $log(T) \sim Logis(\mu,\sigma)$.
+
 \section{Ejercicio 7}
+
+Sea $T$ una variable aleatoria continua tal que $Y=log(T) \sim Logis(\mu,\sigma)$, veamos que $T \sim Loglogis(\mu,\sigma)$.
+
+En efecto, pues
+
+\begin{equation*}
+\begin{split}
+f_T(t) &= f_Y(log(t))\left|\frac{d}{dt}log(t)\right|, \ t>0 \\
+       &= \frac{1}{\sigma}\frac{1}{\left(e^{(log(t)-\mu)/2\sigma}+e^{-(log(t)-\mu)/2\sigma}\right)^2}\left|\frac{1}{t}\right|, \ t>0 \\
+       &= \frac{1}{\sigma}\frac{1}{\left(t^{1/2\sigma}e^{-\mu/2\sigma}+t^{-1/2\sigma}e^{\mu/2\sigma}\right)^2}\frac{1}{t}, \ t>0 \\
+       &= \frac{t^{-1}}{\sigma}\frac{1}{\left[t^{-1/2\sigma}\left(t^{1/\sigma}e^{-\mu/2\sigma}+e^{\mu/2\sigma}\right)\right]^2}, \ t>0 \\
+       & = \frac{t^{\frac{1}{\sigma}-1}}{\sigma}\frac{1}{(e^{\mu/2\sigma}+t^{1/\sigma}e^{-\mu/2\sigma})^2}, \ t>0
+\end{split}
+\end{equation*}
+
+
+De allí que $t \sim Loglogis(\mu,\sigma)$.
+
+Por lo tanto si T una variable aleatoria continua tal que $log(T) \sim Logis(\mu,\sigma)$ $\Rightarrow$ $T \sim Loglogis(\mu,\sigma)$.
+
+Finalmente se puede obtener una conclusión similar:
+
+Sea $T$ una variable aleatoria continua, luego $T \sim Loglogis(\mu,\sigma)$ $\iff$ $log(T) \sim Logis(\mu,\sigma)$.
+
