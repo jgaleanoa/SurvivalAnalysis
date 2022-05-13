@@ -77,7 +77,8 @@ datos3 <- data.frame(Tiempo = time,
 set.seed(7)
 idx <- sample(1:dim(datos3)[1], 5)
 kable(datos3[idx, ], longtable = T, align = "c",
-      booktabs = T, row.names = F)
+      booktabs = T, row.names = F, 
+      caption = "Datos sobre cancer de ovario")
 ```
 
 En este problema el grupo 1 representa pacientes con tumor de bajo grado mientras que el grupo 2 corresponde a tumor de alto grado.
@@ -87,18 +88,110 @@ En este problema el grupo 1 representa pacientes con tumor de bajo grado mientra
 Previamente se han obtenido estimaciones de funciones hazard gracias a
 métodos de estimación como el de Nelson - Aalen o Kaplan - Meier gracias
 a la relación $\hat{H}{(t)} \approx e^{-\hat{H}_{NA}(t)}$, en esta
-situación se estimará por medio del modelo de regresión Weibull
+situación se estimará por medio del modelo de regresión Weibull en forma de riesgos proporcionales
 
 $$
-log(h(t)) = -log(\sigma) + \alpha log(t) + \dot{\beta}_0 + \sum_{i=1}^k \dot{\beta}_k x_k
+log(h(t)) = -log(\sigma) + \alpha log(t) + \dot{\beta}_0 + \sum_{j=1}^k \dot{\beta}_j x_j
 $$
-donde $\dot{\beta_j} = -\frac{\beta_j}{\sigma}$ y $\alpha = \frac{1}{\sigma} - 1$
+donde $\dot{\beta_j} = -\frac{\beta_j}{\sigma}$ y $\alpha = \frac{1}{\sigma} - 1$.
+
+Cabe aclarar que la librería `survival` del lenguaje de programación R ajusta el modelo 
+
+$$
+log(T) = \beta_0 + \sum_{j = 1}^k \beta_j x_j + \sigma \varepsilon \hspace{.2in} \varepsilon \sim{DVEG} \ \text{ con } \ \sigma \neq 1 
+$$
+por lo tanto, si se quiere llegar al modelo de riesgos proporcionales deben usarse las relaciones mostradas previamente para llegar a dicha expresión y posteriormente usarlo para obtener una curva estimada del hazard en función de los grupos. Para simplificar la notación, la covariable $X_1$ representará los grupos.
+
+Para ajustar el modelo en R se usan las funciones `Surv()` y `survreg()` del paquete `survival` de la siguiente manera:
+
+* Se usa la función `Surv()` para crear un objeto de la clase **surv** el cual será posteriormente usado como variable respuesta. La primera entrada de la función es el tiempo de falla y la segunda el estado de censura. `Surv(Tiempo, Estado)`
+* Luego de crear el objeto **surv** se usa la función `survreg()` para ajustar el modelo Weibull. El primer argumento es un objeto de la clase **formula** y los múltiples argumentos posteriores son usados para especificar otro tipo información de interés al momento de realizar el ajuste como lo puede ser la distribución de probabilidad a usar la cual en este caso es Weibull. `survreg(Surv(Tiempo, Estado) ~ Grupo, dist = "weibull", data = datos3)`.
 
 ```{r Modelo-Weibull}
 mod_wei <- survreg(Surv(Tiempo, Estado) ~ Grupo,
                    dist = "weibull", data = datos3)
 ```
 
+Luego de ajustar el modelo Weibull en R se obtienen las siguientes estimaciones para los parámetros del modelo:
+
+\begin{table}[H]
+\centering
+\caption{Estimación de coeficientes}
+\label{}
+\begin{tabular}{|c|c|}
+\hline
+Parámetro  & Estimación \\ \hline
+$\beta_0$ & 7.008      \\ \hline
+$\beta_1$ & -0.941     \\ \hline
+$\sigma$     & 0.823      \\ \hline
+\end{tabular}
+\end{table}
+
+Por lo que el modelo queda especificado como:
+
+$$
+\widehat{log(T)} = 7.008 - 0.941 \times x_1 \\
+$$
+
+$$
+x_1 = \begin{cases}
+1 \ \text{ si se está en el grupo 2} \\
+0 \ \text{ si se está en el grupo 1} 
+\end{cases}
+$$
+
+Una vez ajustado el modelo se obtienen estimaciones para los parámetros $\beta_0$, $\beta_1$ y $\sigma$ por lo que se puede usar la relación $\dot{\beta_j} = -\frac{\beta_j}{\sigma}$ para llegar a una estimación del modelo en forma de riesgos proporcionales
+
+```{r coefs-points}
+sigma <- mod_wei$scale
+beta_point <- -coef(mod_wei)/sigma
+```
+
+\begin{table}[H]
+\centering
+\caption{Coeficientes de $log(h(t))$}
+\label{}
+\begin{tabular}{|c|c|}
+\hline
+Parámetro  & Estimación \\ \hline
+$\dot{\beta}_0$ & -8.5173      \\ \hline
+$\dot{\beta}_1$ & 1.1443    \\ \hline
+\end{tabular}
+\end{table}
+
+$$
+\begin{aligned}
+\widehat{log(h(t))} &= -log(0.823) +\left(\frac{1}{0.823}-1\right) log(t) -8.5173 + 1.1443 \times x_1 \\
+&= -0.195 + 0.2154 \times log(t) -8.5173 + 1.1443 \times x_1
+\end{aligned}
+$$
+
+Esta última expresión solo depende del tiempo y el grupo por lo que para obtener gráficas estimadas para los hazard de cada grupo basta con fijar valores en $x_1$ y evaluar diferentes valores de $t$
+
+```{r mod-riesgos-prop, fig.cap="Funciones hazard via Weibull de riesgos proporcionales"}
+ht <- function(x1, t){
+  x1 <- if_else(x1 == 2, 1, 0)
+  log_ht <- -log(sigma) + (1/sigma - 1)*log(t) +
+    beta_point[1] + beta_point[2] * x1
+  ht <- exp(log_ht)
+  return(ht)
+}
+
+t <- 1:max(datos3$Tiempo)
+rejilla <- data.frame(Tiempo = rep(t, 2),
+                      Ht = c(ht(1, t), ht(2, t)),
+                      Grupo = c(rep(1, length(t)), rep(2, length(t))))
+
+ggplot(rejilla, aes(Tiempo, Ht)) +
+  geom_line(aes(col = as.factor(Grupo))) +
+  labs(title = "Funciones hazard por grupo",
+       y = "h(t)", col = "Grupo") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+* Para $\sigma \in (0.5, 1)$ se tiene que la función hazard es creciente a una tasa decreciente lo cual es coherente a lo visto en el gráfico anterior.
+* Se puede apreciar que el riesgo instantáneo de falla para el grupo 1 (tumor de bajo grado) es mucho menor que para el grupo 2 (tumor de alto grado) lo cual es esperado para pacientes con este tipo de enfermedad.
 
 \subsection{Literal b}
 
