@@ -543,8 +543,9 @@ $$
 $$
 
 Esta última expresión solo depende del tiempo y el grupo por lo que para
-obtener gráficas estimadas para los hazard de cada grupo basta con fijar
-valores en $x_1$ y evaluar diferentes valores de $t$
+obtener gráficas estimadas para los hazard de cada grupo basta con
+fijarlos en $x_1$, evaluar diferentes valores de $t$ y despejar $h(t)$
+tomando exponencial en ambos lados de la igualdad.
 
 ```{r mod-riesgos-prop, fig.cap="Funciones hazard via Weibull de riesgos proporcionales"}
 ht <- function(x1, t){
@@ -577,10 +578,91 @@ grado) lo cual se espera para pacientes con este tipo de enfermedad.
 * Teniendo en cuenta que el hazard es creciente en ambos grupos, se puede
 pensar que las pacientes no están recibiendo ningún tratamiento o que el
 tratamiento al cual están siendo sometidas no es efectivo para combatir
-los tumores puesto que un hazard creciente implica una supervivencia
-decreciente.
+los tumores puesto que el riesgo instantáneo de falla es cada vez mayor 
+a medida que el tiempo aumenta.
 
-\subsection{Literal b}
+\subsection{Supervivencia en función de los grupos}
+
+Se quiere probar la hipótesis 
+
+$$
+\begin{cases}
+H_0: \forall_t \hspace{.1in} S_1(t) = S_2(t) \\
+H_1: \exists_t \hspace{.1in} S_1(t) \neq S_2(t)
+\end{cases}
+$$
+
+Para probar esta hipótesis, su usara el estadístico de Wald en el 
+modelo de regresión Weibull para el tiempo de supervivencia
+
+$$
+W = \left[\frac{\hat{\beta}_1}{\widehat{s.e}(\hat{\beta}_1)}\right]^2 \sim \chi_{(1)}^2
+$$
+
+Cuyo conjunto de hipótesis es 
+
+$$
+\begin{cases}
+H_0: \beta_1 = 0 \\
+H_1: \beta_1 \neq 0
+\end{cases}
+$$
+
+Teniendo en cuenta que la covariable $X_1$ se refiere al efecto del 
+grupo en el modelo, si el efecto de esta covariable es nula se podría
+concluir que no hay diferencia en las funciones de supervivencia 
+mientras que si el efecto de la covariable es no nula se concluye que
+existen diferencias en las funciones de supervivencia por grupo.
+
+El error estandar estimado asociado a $\hat{\beta}_1$ es
+$\widehat{s.e}(\hat{\beta}_1) = 0.407$ por lo que 
+
+$$
+W = \left[\frac{-0.941}{0.407}\right]^2 = 5.3361
+$$
+
+Luego se calcula el valor - p como
+$\mathbb{P}\left(\chi_{(1)}^2 > 5.3361\right) = 0.021$, por lo tanto a
+un nivel de significancia de 0.05 se rechaza $H_0$ y se concluye que el
+coeficiente de regresión asociado a $\beta_1$ es un cantidad no nula y
+por lo tanto $S_1(t) \neq S_2(t)$ para algún t.
+
+Esta conclusión es muy plausible puesto que en la figura 3 se pudo
+apreciar una gran diferencia entre las funciones hazard de ambos grupos,
+además en la realidad se espera que un tumor de alto grado sea más
+dañino que uno de bajo grado. A continuación se muestran estimaciones de
+las funciones de supervivencia usando Kapplan - Meier como mera
+ilustración de las diferencias existentes en la supervivencia de los dos
+grupos
+
+```{r KM-ej2, fig.cap="Supervivencia por grupo usando Kapplan - Meier"}
+KM_fit <- survfit(Surv(Tiempo, Estado) ~ Grupo, data = datos3)
+
+KM_survs <- data.frame(prob = c(KM_fit$surv[1:15], KM_fit$surv[16:33]),
+                       t = c(KM_fit$time[1:15], KM_fit$time[16:33]),
+                       Grupo = c(rep(1, 15), rep(2, 18)))
+
+ggplot(KM_survs, aes(t, prob)) +
+  geom_step(aes(col = as.factor(Grupo)), size = 1.5) +
+  labs(title = "Supervivencia por grupos", col = "Grupo",
+       x = "Tiempo (días)", y = "Probabilidad de supervivencia") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Gráficamente se aprecia una diferencia clara en las curvas de
+supervivencia entre ambos grupos; aunque en los primeros días la
+probabilidad de supervivencia es relativamente parecida, aproximadamente
+en el día 375 se observa un gran decaimiento en la función de
+supervivencia asociada al grupo 2 (tumor de alto grado), además mientras
+la probabilidad de supervivencia del grupo 2 es cada vez más cercana a
+cero, la del grupo 1 (tumor de bajo grado) se mantiene por encima de 0.5
+
+Para finalizar se destaca que mientras el log - rank test solo puede
+detectar diferencias entre las funciones de supervivencia, el modelo de
+regresión permite medir el efecto puro de dicha covariable sobre el
+tiempo de supervivencia además de la posibilidad de considerar otras
+covariables que puedan ayudar a explicar el fenómeno en cuestión.
 
 <!-- Santiago -->
 
