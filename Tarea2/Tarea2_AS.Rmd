@@ -209,7 +209,7 @@ kable(summodloglog,
   kable_styling(latex_options = "HOLD_position")
 ```
 
-Por otro lado, observando lo conseguido por el modelo Log-Logístico, se puede notar un resultado similar a lo obtenido con el modelo Weibull. Nótese que en este caso, el valor P asociado a la covariable "rx" es polémico dada su cercanía con el nivel de significancia, sin embargo, para evitar conclusiones erróneas, se procede a eliminar la misma del modelo tal y como con las demás exceptuando "age".
+Por otro lado, observando lo conseguido por el modelo Log-Logístico, se puede notar un resultado similar a lo obtenido con el modelo Weibull. Nótese que en este caso, el valor P asociado a la covariable "rx" es polémico dada su cercanía con el nivel de significancia, sin embargo, para evitar conclusiones erróneas, se procederá a eliminar la misma del modelo si es necesario en la depuración posterior.
 
 Por otro lado, para estimar el modelo: 
 
@@ -235,14 +235,14 @@ Finalmente, según el modelo Log-Normal se llega a que de nuevo la covariable qu
 
 \subsection{Modelos depurados}
 
-Con lo anterior, se procede a reajustar los tres modelos con los regresores estadísticamente significativos para con estos, evaluar el desempeño de cada uno y elegir según alguna métrica el más adecuado. 
+Con lo anterior, se procede a reajustar los tres modelos excluyendo la covariable asociada al mayor valor P en cada caso. Para esta causa, coincide que la covariable a eliminar en los tres modelo es "ecog.ps" 
 
 ```{r depurando modelos}
-modwei2 <- survreg(Surv(futime, fustat)~age, data = ovarian, dist = "weibull")
+modwei2 <- survreg(Surv(futime, fustat)~age+resid.ds+rx, data = ovarian, dist = "weibull")
 
-modloglog2 <- survreg(Surv(futime, fustat)~age, data = ovarian, dist = "loglogistic")
+modloglog2 <- survreg(Surv(futime, fustat)~age+resid.ds+rx, data = ovarian, dist = "loglogistic")
 
-modlognor2 <- survreg(Surv(futime, fustat)~age+rx, data = ovarian, dist = "lognormal")
+modlognor2 <- survreg(Surv(futime, fustat)~age+resid.ds+rx, data = ovarian, dist = "lognormal")
 
 summodwei2 <- summod(modwei2)
 summodloglog2 <- summod(modloglog2)
@@ -252,7 +252,7 @@ summodlognor2 <- summod(modlognor2)
 Estimando nuevamente: 
 
 $$
-Log(T) = \beta_0 + \beta_1age+\sigma\epsilon
+Log(T) = \beta_0 + \beta_1age+\beta_2resid.ds+\beta_3rx+\sigma\epsilon
 $$
 $$
 T \sim Weibull(\lambda,\beta)
@@ -271,7 +271,7 @@ kable(summodwei2,
 Por otro lado considerando el modelo: 
 
 $$
-Log(T) = \beta_0 + \beta_1age+\sigma\epsilon
+Log(T) = \beta_0 + \beta_1age+\beta_2resid.ds+\beta_3rx+\sigma\epsilon
 $$
 $$
 T \sim Loglogis(\mu,\sigma)
@@ -290,7 +290,7 @@ kable(summodloglog2,
 Finalmente, con el modelo:
 
 $$
-Log(T) = \beta_0 + \beta_1age + \beta_2rx + \sigma\epsilon
+Log(T) = \beta_0 + \beta_1age+\beta_2resid.ds+\beta_3rx+\sigma\epsilon
 $$
 $$
 T \sim Lognormal(\mu,\sigma^2)
@@ -306,6 +306,165 @@ kable(summodlognor2,
   kable_styling(latex_options = "HOLD_position")
 ```
 
+Nótese que en los tres modelos, la siguiente covariable a eliminar es "resid.ds", ya que en todos los casos, el valor P asociado a este regresor es mayor al nivel de significancia usual $\alpha = 0.05$.
+
+Así entonces, se obtienen los siguientes resultados:
+
+```{r depurando modelos2}
+modwei3 <- survreg(Surv(futime, fustat)~age+rx, data = ovarian, dist = "weibull")
+
+modloglog3 <- survreg(Surv(futime, fustat)~age+rx, data = ovarian, dist = "loglogistic")
+
+modlognor3 <- survreg(Surv(futime, fustat)~age+rx, data = ovarian, dist = "lognormal")
+
+summodwei3 <- summod(modwei3)
+summodloglog3 <- summod(modloglog3)
+summodlognor3 <- summod(modlognor3)
+```
+
+Para el modelo: 
+
+$$
+Log(T) = \beta_0 + \beta_1age+\beta_2rx+\sigma\epsilon
+$$
+$$
+T \sim Weibull(\lambda,\beta)
+$$
+
+Se obtiene que:
+
+```{r modelo estimado weibull3}
+kable(summodwei3,
+      caption = 'Modelo Weibull',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Por otro lado considerando el modelo: 
+
+$$
+Log(T) = \beta_0 + \beta_1age+\beta_2rx+\sigma\epsilon
+$$
+$$
+T \sim Loglogis(\mu,\sigma)
+$$
+
+Resulta en:
+
+```{r modelo estimado loglog3}
+kable(summodloglog3,
+      caption = 'Modelo Log-Logístico',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Finalmente, con el modelo:
+
+$$
+Log(T) = \beta_0 + \beta_1age+\beta_2rx+\sigma\epsilon
+$$
+$$
+T \sim Lognormal(\mu,\sigma^2)
+$$
+
+Se llega a:
+
+```{r modelo estimado lognor3}
+kable(summodlognor3,
+      caption = 'Modelo Log-Normal',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+De los resultados anteriores para cada modelo se puede decir que:
+
+
+- Para el modelo Weibull, la covariable rx se asocia a un valor P mayor a la significancia usada, por lo cual, se procede a sacarla del mismo.
+- Para el modelo Log-Logístico, la situación es similar. La variable rx presenta un valor P asociado de 0.073, por lo cual se excluye la misma de este modelo
+- Por último, para el modelo Log-Normal, la covariable rx resulta ser significativa por las mismas razones anteriores, por lo cual este será el único modelo de dos covariables que se obtenga
+
+Los modelos finales obtenidos son:
+
+```{r depurando modelos3}
+modwei4 <- survreg(Surv(futime, fustat)~age, data = ovarian, dist = "weibull")
+
+modloglog4 <- survreg(Surv(futime, fustat)~age, data = ovarian, dist = "loglogistic")
+
+modlognor4 <- survreg(Surv(futime, fustat)~age+rx, data = ovarian, dist = "lognormal")
+
+summodwei4 <- summod(modwei4)
+summodloglog4 <- summod(modloglog4)
+summodlognor4 <- summod(modlognor4)
+```
+
+Para el modelo: 
+
+$$
+Log(T) = \beta_0 + \beta_1age+\sigma\epsilon
+$$
+$$
+T \sim Weibull(\lambda,\beta)
+$$
+
+Se obtiene que:
+
+```{r modelo estimado weibull4}
+kable(summodwei4,
+      caption = 'Modelo Weibull',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Por otro lado para el modelo: 
+
+$$
+Log(T) = \beta_0 + \beta_1age+\sigma\epsilon
+$$
+$$
+T \sim Loglogis(\mu,\sigma)
+$$
+
+Resulta en:
+
+```{r modelo estimado loglog4}
+kable(summodloglog4,
+      caption = 'Modelo Log-Logístico',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Finalmente, con el modelo:
+
+$$
+Log(T) = \beta_0 + \beta_1age+\beta_2rx+\sigma\epsilon
+$$
+$$
+T \sim Lognormal(\mu,\sigma^2)
+$$
+
+Se llega a:
+
+```{r modelo estimado lognor4}
+kable(summodlognor4,
+      caption = 'Modelo Log-Normal',
+      booktab = T, 
+      align = 'c',
+      escape = F)%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+
+
 \subsection{Evaluación de desempeño}
 
 Una vez depurados, es interesante poner a competir los tres modelos obtenidos para escoger el que mejor desempeño muestre de acuerdo a un critero elegido. En este caso y por simplicidad computacional, la métrica usada para comparar los modelos será el criterio de información de Akaike (AIC), donde el modelo que presente el menor valor será el que mejor desempeño evidencie y así, el elegido para procedimientos o usos posteriores del mismo.
@@ -314,7 +473,7 @@ Dicho lo anterior, se presenta el siguiente resultado:
 
 ```{r comparando desempeño}
 AICs <- data.frame(Modelo = c("Weibull", "Log-Logístico", "Log-Normal"),
-                   AIC = c(AIC(modwei2),AIC(modloglog2),AIC(modlognor2)))
+                   AIC = c(AIC(modwei4),AIC(modloglog4),AIC(modlognor4)))
 kable(AICs,
       caption = 'Resultados de desempeño',
       booktab = T, 
@@ -337,9 +496,9 @@ modlognorconf1 <- survreg(Surv(futime, fustat)~age+rx+ecog.ps,
 perchange <- function(coefsin, coefcon){
   return(paste(round(abs((coefsin-coefcon)/coefcon)*100,2), " \\%", sep = ""))
 }
-conf1 <- data.frame(sinecog = modlognor2$coefficients[2:3],
+conf1 <- data.frame(sinecog = modlognor4$coefficients[2:3],
                     conecog = modlognorconf1$coefficients[2:3],
-                    cambio = perchange(modlognor2$coefficients[2:3],
+                    cambio = perchange(modlognor4$coefficients[2:3],
                                        modlognorconf1$coefficients[2:3]))
 colnames <- c("Parámetro estimado sin ecog.ps",
                "Parámetro estimado con ecog.ps",
@@ -362,9 +521,9 @@ Se considera ahora el regresor "resid.ds" para evaluar una posible confusión. S
 modlognorconf2 <- survreg(Surv(futime, fustat)~age+rx+resid.ds, 
                           data = ovarian, dist = "lognormal")
 
-conf2 <- data.frame(sinecog = modlognor2$coefficients[2:3],
+conf2 <- data.frame(sinecog = modlognor4$coefficients[2:3],
                     conecog = modlognorconf2$coefficients[2:3],
-                    cambio = perchange(modlognor2$coefficients[2:3],
+                    cambio = perchange(modlognor4$coefficients[2:3],
                                        modlognorconf2$coefficients[2:3]))
 colnames <- c("Parámetro estimado sin resid.ds",
                "Parámetro estimado con resid.ds",
@@ -381,31 +540,31 @@ kable(conf2,
 
 Del resultado conseguido se concluye que, dado que el cambio porcentual en las estimaciones de los parámetros asociados a las covariables "age" y "rx" es en ambos casos mayor al 10%, el regresor "resid.ds" que se relaciona con la presencia de una enfermedad residual en el paciente, debe ser incluído en el modelo. Nótese que en el análisis descriptivo esta covariable fué candidata a una covariable significativa para explicar el tiempo de supervivencia de los pacientes, sin embargo en la depuración fué descartada del modelo. Ahora, en el control de confusión reingresa al mismo y se concluye como importante para explicar la respuesta.
 
-Finalmente, se considera la interacción entre las variables "resid.ds" y "ecog.ps" para evaluar una posible confusión sobre las covariables "age" y "rx". Se obtiene el siguiente resultado:
+Finalmente, se desea analizar si la inclusión de alguna interacción entre las covariables presentes en el modelo es estadísticamente significativa. En esta causa se considerarán las interacciones $age*rx$, $rx*resid.ds$ y $age*resid.ds$ incluyéndolas marginalmente en el modelo y evaluando su valor P. El resultado que se obtiene es:
 
-```{r analizando confusion 3}
-modlognorconf3 <- survreg(Surv(futime, fustat)~age+rx+resid.ds:ecog.ps, 
+```{r analizando interacción}
+modlognorint1 <- survreg(Surv(futime, fustat)~age+rx+resid.ds+age:rx, 
+                          data = ovarian, dist = "lognormal")
+modlognorint2 <- survreg(Surv(futime, fustat)~age+rx+resid.ds+rx:resid.ds, 
+                          data = ovarian, dist = "lognormal")
+modlognorint3 <- survreg(Surv(futime, fustat)~age+rx+resid.ds+age:resid.ds, 
                           data = ovarian, dist = "lognormal")
 
+pint1 <- round(summary(modlognorint1)$table[5,4],4)
+pint2 <- round(summary(modlognorint2)$table[5,4],4)
+pint3 <- round(summary(modlognorint3)$table[5,4],4)
 
-conf3 <- data.frame(sinecog = modlognor2$coefficients[2:3],
-                    conecog = modlognorconf3$coefficients[2:3],
-                    cambio = perchange(modlognor2$coefficients[2:3],
-                                       modlognorconf3$coefficients[2:3]))
-colnames <- c("Parámetro estimado sin interacción",
-               "Parámetro estimado con interacción",
-               "Cambio Porcentual")
-
-kable(conf3,
-      caption = 'Control de confusión con interacción',
-      col.names = colnames,
+ints <- data.frame(Interacción = c("age*rx","rx*resid.ds","age*resid.ds"),
+                   "ValorP"= c(pint1,pint2,pint3))
+kable(ints,
+      caption = 'Inclusión de interacciones',
       booktab = T, 
       align = 'c',
       escape = F)%>%
   kable_styling(latex_options = "HOLD_position")
 ```
 
-Y así, dado que el cambio porcentual en ningún caso es igual o mayor al 10%, se considera que es innecesario añadir la interacción en cuestión al modelo. Con esto, el modelo final obtenido para los datos de cáncer de ovario es el siguiente:
+Y así, dado que el valor P asociado a cada interacción es en cada caso mayor a una significancia tradicional, se considera que es innecesario añadir cualquier interacción de las variables presentes en el modelo. Con esto, el modelo final obtenido para los datos de cáncer de ovario es el siguiente:
 
 $$
 \widehat{Log(T)} = 10.31 - 0.07age + 0.60rx - 0.53resid.ds
