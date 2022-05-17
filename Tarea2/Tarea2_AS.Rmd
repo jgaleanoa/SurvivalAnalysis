@@ -61,6 +61,7 @@ ovarian <- survival::ovarian
 
 kable(head(ovarian),
       caption = 'Ovarian Data',
+      linesep = "",
       booktab = T, 
       align = 'c',
       escape = F)%>%
@@ -179,6 +180,7 @@ Se obtiene que:
 ```{r modelo estimado weibull}
 kable(summodwei,
       caption = 'Modelo Weibull',
+      linesep = "",
       booktab = T, 
       align = 'c',
       escape = F)%>%
@@ -200,6 +202,7 @@ Se obtiene que:
 ```{r modelo estimado loglog}
 kable(summodloglog,
       caption = 'Modelo Log-Logístico',
+      linesep = "",
       booktab = T, 
       align = 'c',
       escape = F)%>%
@@ -221,6 +224,7 @@ Se obtiene que:
 ```{r modelo estimado lognor}
 kable(summodlognor,
       caption = 'Modelo Log-Normal',
+      linesep = "",
       booktab = T, 
       align = 'c',
       escape = F)%>%
@@ -331,7 +335,7 @@ modlognorconf1 <- survreg(Surv(futime, fustat)~age+rx+ecog.ps,
                           data = ovarian, dist = "lognormal")
 
 perchange <- function(coefsin, coefcon){
-  return(paste(round(abs((coefsin-coefcon)/coefcon)*100,2), " °/.", sep = ""))
+  return(paste(round(abs((coefsin-coefcon)/coefcon)*100,2), " \\%", sep = ""))
 }
 conf1 <- data.frame(sinecog = modlognor2$coefficients[2:3],
                     conecog = modlognorconf1$coefficients[2:3],
