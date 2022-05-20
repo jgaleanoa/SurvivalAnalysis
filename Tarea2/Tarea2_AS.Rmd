@@ -831,6 +831,70 @@ covariables que puedan ayudar a explicar el fenómeno en cuestión.
 
 \section{Ejercicio 3}
 
+$Y_1 =$ **Tiempo de supervivencia con enfermedad del corazón** 
+
+$Y_2 =$ **Tiempo de supervivencia con enfermedad del riñon** 
+
+
+Supongamos que $Y_1 \sim f_1(t_1, \theta_1)$ y $Y_2 \sim f_2(t_2, \theta_2)$ 
+con $Y_1$ y $Y_2$ independientes con $T = min(Y_1, Y_2)$
+
+
+Como $Y_1 > 0$ y $Y_2 > 0 \Rightarrow T > 0$ 
+
+\begin{equation*}
+\begin{split}
+P(T \leq t) &= 1 - P(T > t) \\
+&= 1 - P(t_{min=(y_i)} > t) \\
+&= 1 - P(Y_1 > t \land Y_2 > t)\\
+&= 1 - [P(Y_1 > t) * P(Y_2 > t)] \\
+&= 1 - [e^{-t\lambda_1} * e^{-t\lambda_2}] \\
+&= 1 - e ^{-t(\lambda_1 + \lambda_2)} = 1-S_T(t) 
+\end{split}
+\end{equation*}
+
+Derivando llegamos a la fdp:
+
+\begin{equation*}
+\begin{split}
+\frac{d[1-S_T(t)]}{dt} &= (\lambda_1 + \lambda_2)  e ^{-t(\lambda_1 + \lambda_2)} \\
+f_T(t) &= (\lambda_1 + \lambda_2)  e ^{-t(\lambda_1 + \lambda_2)} 
+\end{split}
+\end{equation*}
+
+Luego $T \sim exp(\lambda_1 + \lambda_2)$
+
+Con su respectivo Hazard:
+
+\begin{equation*}
+\begin{split}
+h_T(t) = \frac{f_T(t)}{S_T(t)} = \frac{(\lambda_1 + \lambda_2)e^{-t(\lambda_1 + \lambda_2)}}{e^{-t(\lambda_1 + \lambda_2)}} &= \lambda_1 + \lambda_2
+\end{split}
+\end{equation*}
+
+
+¿Cuál de las dos enfermedades causarán primero
+la muerte a un paciente?
+
+Observando la estrecha relación del hazard con la función de supervenía se cumple que:  
+
+
+\begin{equation*}
+\begin{split}
+S_T(t_i) < S_T(t_j) \Rightarrow h_T(t_i) > h_T(t_j) \\
+S_T(t_i) > S_T(t_j) \Rightarrow h_T(t_i) < h_T(t_j)\\
+_{i = 1,j = 2}\\
+\end{split}
+\end{equation*}
+
+
+
+Luego la enfermedad que causara primero la muerte de un paciente es la enfermada con menor probabilidad de supervivencia o en otras palabras la enfermedad con mayor riesgo.
+
+¿Qué se puede decir del hazard de T?
+
+Como era de esperarse y debido a la propiedad de perdida de memoria de la distribución exponencial, se observa un hazard constante $(\lambda_1 + \lambda_2)$ el cual nos indica que se tiene igual riesgo de fallar en cualquier momento del tiempo y este queda totalmente determinado por la enfermedad con menor supervivencia y de esta manera aumentando el riesgo $\lambda_t$ veces con $_{t = min(Y_1, Y_2)}$.
+
 <!-- Simon -->
 
 \section{Ejercicio 4}
