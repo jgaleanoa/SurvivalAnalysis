@@ -189,6 +189,8 @@ kable(summodwei,
 
 Comenzando por el resultado obtenido modelando la respuesta bajo una distribución Weibull, se puede apreciar que, según el valor P para cada covariable y usando un nivel de significancia tradicional de $\alpha = 0.05$, el único factor significativo para el modelo es la edad del paciente "age".
 
+\newpage
+
 Seguidamente, para estimar el modelo: 
 
 $$
@@ -287,6 +289,8 @@ kable(summodloglog2,
   kable_styling(latex_options = "HOLD_position")
 ```
 
+\newpage
+
 Finalmente, con el modelo:
 
 $$
@@ -341,6 +345,8 @@ kable(summodwei3,
       escape = F)%>%
   kable_styling(latex_options = "HOLD_position")
 ```
+
+\newpage
 
 Por otro lado considerando el modelo: 
 
@@ -572,6 +578,7 @@ $$
 $$
 T \sim Lognormal(\mu,\sigma^2)
 $$
+
 <!-- Juanjo -->
 
 \section{Ejercicio 2}
@@ -744,6 +751,8 @@ tratamiento al cual están siendo sometidas no es efectivo para combatir
 los tumores puesto que el riesgo instantáneo de falla es cada vez mayor 
 a medida que el tiempo aumenta.
 
+\newpage
+
 \subsection{Supervivencia en función de los grupos}
 
 Se quiere probar la hipótesis 
@@ -819,7 +828,7 @@ probabilidad de supervivencia es relativamente parecida, aproximadamente
 en el día 375 se observa un gran decaimiento en la función de
 supervivencia asociada al grupo 2 (tumor de alto grado), además mientras
 la probabilidad de supervivencia del grupo 2 es cada vez más cercana a
-cero, la del grupo 1 (tumor de bajo grado) se mantiene por encima de 0.5
+cero, la del grupo 1 (tumor de bajo grado) se mantiene por encima de 0.5.
 
 Para finalizar se destaca que mientras el log - rank test solo puede
 detectar diferencias entre las funciones de supervivencia, el modelo de
@@ -827,16 +836,20 @@ regresión permite medir el efecto puro de dicha covariable sobre el
 tiempo de supervivencia además de la posibilidad de considerar otras
 covariables que puedan ayudar a explicar el fenómeno en cuestión.
 
+\newpage
+
 <!-- Santiago -->
 
 \section{Ejercicio 3}
 
-$Y_1 =$ **Tiempo de supervivencia con enfermedad del corazón** 
+Sean $Y_1$ y $Y_2$ dos variables aleatorias tales que:
 
-$Y_2 =$ **Tiempo de supervivencia con enfermedad del riñon** 
+$Y_1 :$ **Tiempo de supervivencia con enfermedad del corazón** 
+
+$Y_2 :$ **Tiempo de supervivencia con enfermedad del riñon** 
 
 
-Supongamos que $Y_1 \sim f_1(t_1, \theta_1)$ y $Y_2 \sim f_2(t_2, \theta_2)$ 
+Supongamos que $Y_1 \sim f_1(t_1 | \lambda_1)$ y $Y_2 \sim f_2(t_2 | \lambda_2)$ 
 con $Y_1$ y $Y_2$ independientes con $T = min(Y_1, Y_2)$
 
 
@@ -897,7 +910,8 @@ Como era de esperarse y debido a la propiedad de perdida de memoria de la distri
 
 <!-- Simon -->
 
-\section{Ejercicio 4}
+\
+\
 
 Para tener en cuenta en los ejercicios 4 y 5:
 
@@ -910,12 +924,14 @@ f_Y(y) & = \frac{1}{\sqrt{2\pi}\sigma y}e^{-\frac{(log(y)-\mu)^2}{2\sigma^2}},\ 
 \end{split}
 \end{equation*}
 
+\section{Ejercicio 4}
+
 Sea $Y = log(T) \sim N(\mu, \sigma^2)$, veamos que $T \sim Lognormal(\mu, \sigma^2)$:
 
 Por el teorema de cambio de variable se sabe que si $Y=g(x)$ con $X$ e $Y$ continuas, se sigue que:
 
 $$
-f_Y(y) = f_X(g^-1(y))\left|\frac{dy^-1}{dy}\right|
+f_Y(y) = f_T(g^-1(y))\left|\frac{dy^-1}{dy}\right|
 $$
 Luego:
 
@@ -939,9 +955,9 @@ Nuevamente, sea $Y=log(T)$, así $T=e^Y$.
 
 \begin{equation*}
 \begin{split}
-f_Y(Y) & = f_T(e^Y)\left|\frac{d}{dY}e^Y\right|,\ Y \in \mathbb{R} \\
-       & = \frac{1}{\sqrt{2\pi}\sigma e^Y}e^{-\frac{(log(e^Y)-\mu)^2}{2\sigma^2}}|e^Y|,\ Y \in \mathbb{R} \\
-       & = \frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(Y-\mu)^2}{2\sigma^2}},\ Y \in \mathbb{R}
+f_Y(y) & = f_T(e^y)\left|\frac{d}{dy}e^y\right|,\ y \in \mathbb{R} \\
+       & = \frac{1}{\sqrt{2\pi}\sigma e^y}e^{-\frac{(log(e^y)-\mu)^2}{2\sigma^2}}|e^y|,\ y \in \mathbb{R} \\
+       & = \frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(y-\mu)^2}{2\sigma^2}},\ y \in \mathbb{R}
 \end{split}
 \end{equation*}
 
@@ -953,7 +969,8 @@ Visto eso, se puede afirmar:
 
 Sea T una variable aleatoria continua, luego $T \sim Lognormal(\mu, \sigma^2)$ $\iff$ $log(T) \sim N(\mu, \sigma^2)$
 
-\section{Ejercicio 6}
+\
+\
 
 Para tener en cuenta en los ejercicios 6 y 7:
 
@@ -965,6 +982,10 @@ f_X(x) & = \frac{e^{\frac{-(x-\mu)}{\sigma}}}{\sigma\left(1+e^{\frac{-(x-\mu)}{\
 f_Y(y)  & =  \frac{y^{\frac{1}{\sigma}-1}}{\sigma}\frac{1}{(e^{\mu/2\sigma}+y^{1/\sigma}e^{-\mu/2\sigma})^2}, \ y>0
 \end{split}
 \end{equation*}
+
+\newpage
+
+\section{Ejercicio 6}
 
 Sea $T$ una variable aleatoria tal que $T \sim Loglogis(\mu, \sigma)$. Veamos que $Y = log(T) \sim Logis(\mu, \sigma)$.
 
