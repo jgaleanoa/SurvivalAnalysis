@@ -60,3 +60,110 @@ library(gridExtra)
 <!-- Juanjo y Gaviria -->
 
 \section{Ejercicio 3}
+
+Se tiene a disposición las observaciones de 418 pacientes relativos a la cirrosis biliar primaria. Estos datos provienen del ensayo de May Clinic sobre la enfermedad (PBC, por sus siglas en inglés) del hígado realizado entre 1974 y 1984. A cada paciente se le midieron 17 covariables relacionadas a diversas condiciones médicas. A continuación se presentan las primeras 5 variables de la base de datos.
+
+```{r Datos-PBC, warning=F}
+pbc <- read.table("PBC.txt", 
+                  col.names = c("ID", "Time", "Status", "Drug", 
+                                "Age", "Sex", "Ascites", "Hepatomegaly",
+                                "Spiders", "Edema", "Serum_bilirubin",
+                                "Serum_cholesterol", "Albumin",
+                                "Urine_copper", "Alkaline_phosphatase",
+                                "SGOT", "Triglicerides", "Platelets",
+                                "Prothrombin_time", "Histologic_stage")) %>% 
+  mutate(Drug = as.factor(Drug),
+         Sex = as.factor(Sex),
+         Ascites = as.factor(Ascites),
+         Hepatomegaly = as.factor(Hepatomegaly),
+         Spiders = as.factor(Spiders),
+         Edema = as.factor(Edema),
+         Serum_cholesterol = as.numeric(Serum_cholesterol),
+         Urine_copper = as.numeric(Urine_copper),
+         Alkaline_phosphatase = as.numeric(Alkaline_phosphatase),
+         SGOT = as.numeric(SGOT),
+         Triglicerides = as.numeric(Triglicerides),
+         Platelets = as.numeric(Platelets),
+         Prothrombin_time = as.numeric(Prothrombin_time),
+         Histologic_stage = as.factor(Histologic_stage)) 
+
+kable(head(pbc[1:5]), longtable = T, booktabs = T, align = "c",
+      caption = "Datos sobre cirrosis biliar primaria",
+      linesep = "")
+```
+Luego de realizar un análisis visual de las base de datos se encontró que las variables serum cholesterol, urine copper, alkaline phophatase, SGOT, triglicerides, platelets y prothrombin presentan valores faltantes por lo cual se hace necesario realizar un proceso de imputación de datos NA, para esto se realizan histogramas de dichas variables para determinar medidas pertinentes para imputar.
+
+```{r Imputacion-NAs, fig.cap="Distribuciones de las variables numéricas con NAs", warning=F, fig.width=7}
+p1 <- ggplot(pbc, aes(Serum_cholesterol)) +
+  geom_histogram(bins = nclass.Sturges(pbc$Serum_cholesterol),
+                 col = "black", fill = "cyan") +
+  labs(x = "Serum cholesterol", y = "Frecuencia") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text = element_text(size = 7))
+
+p2 <- ggplot(pbc, aes(Urine_copper)) +
+  geom_histogram(bins = nclass.Sturges(pbc$Urine_copper),
+                 col = "black", fill = "cyan") +
+  labs(x = "Urine copper", y = "") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text = element_text(size = 7))
+
+
+p3 <- ggplot(pbc, aes(Alkaline_phosphatase)) +
+  geom_histogram(bins = nclass.Sturges(pbc$Alkaline_phosphatase),
+                 col = "black", fill = "cyan") +
+  labs(x = "Alkaline phosphatase", y = "") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text = element_text(size = 7))
+
+p4 <- ggplot(pbc, aes(SGOT)) +
+  geom_histogram(bins = nclass.Sturges(pbc$SGOT),
+                 col = "black", fill = "cyan") +
+  labs(x = "SGOT", y = "") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text = element_text(size = 7))
+
+p5 <- ggplot(pbc, aes(Triglicerides)) +
+  geom_histogram(bins = nclass.Sturges(pbc$Triglicerides),
+                 col = "black", fill = "cyan") +
+  labs(x = "Triglicerides", y = "Frecuencia") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text = element_text(size = 7))
+
+p6 <- ggplot(pbc, aes(Platelets)) +
+  geom_histogram(bins = nclass.Sturges(pbc$Platelets),
+                 col = "black", fill = "cyan") +
+  labs(x = "Platelets", y = "") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text = element_text(size = 7))
+
+p7 <- ggplot(pbc, aes(Prothrombin_time)) +
+  geom_histogram(bins = nclass.Sturges(pbc$Prothrombin_time),
+                 col = "black", fill = "cyan") +
+  labs(x = "Prothrombin time", y = "") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text = element_text(size = 7))
+
+ggpubr::ggarrange(p1, p2, p3, p4, p5, p6, p7,
+                  nrow = 2, ncol = 4)
+```
+Se puede apreciar que, en general, las variables con valores faltantes tienen algún tipo de asimetría por lo que imputar datos con la media no sería adecuado puesto que es una medida que se ve influenciada por outliers, por lo tanto se considera más pertinente usar la mediana como medida de imputación.
+
+```{r Imputacion}
+vars_imputar <- pbc[,apply(pbc, 2, function (x) {sum(is.na(x))}) > 0] %>% 
+  names()
+medianas_vars <- as.list(apply(pbc[, vars_imputar], 2, median, na.rm = T))
+pbc_imputado <- pbc %>% 
+  replace_na(medianas_vars) %>% 
+  mutate(Status = as.factor(if_else(Status < 2, 0, 1)))
+```
+
+\subsection{Ajuste de un modelo Weibull}
+
