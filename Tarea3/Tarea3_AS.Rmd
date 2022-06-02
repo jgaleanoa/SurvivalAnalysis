@@ -34,6 +34,7 @@ library(ggfortify)
 library(survival)
 library(survminer)
 library(gridExtra)
+library(ggcorrplot)
 ```
 
 ```{=tex}
@@ -160,10 +161,66 @@ Se puede apreciar que, en general, las variables con valores faltantes tienen al
 vars_imputar <- pbc[,apply(pbc, 2, function (x) {sum(is.na(x))}) > 0] %>% 
   names()
 medianas_vars <- as.list(apply(pbc[, vars_imputar], 2, median, na.rm = T))
+
 pbc_imputado <- pbc %>% 
   replace_na(medianas_vars) %>% 
   mutate(Status = as.factor(if_else(Status < 2, 0, 1)))
 ```
+
+\subsection{Análisis descriptivo}
+
+Antes de inicar el proceso de modelación se realiza un análisis descriptivo de los datos con el propósito de encontrar aquellas variables que, aparentemente, mejor ayuden a explicar el tiempo de falla de los individuos en cuestión.
+
+Teniendo en cuenta que las variables numéricas fueron imputadas previamente, se decide hacer un pequeño análisis de correlación entre ellas para escoger las que mejor expliquen el tiempo de falla y además evitar posible problemas de multicolinealidad
+
+```{r}
+corr_mat <- pbc_imputado %>% 
+  select(Time, Age, Serum_bilirubin, Serum_cholesterol, Albumin,
+         Urine_copper, Alkaline_phosphatase, SGOT, Triglicerides, 
+         Platelets, Prothrombin_time) %>% 
+  cor()
+
+ggcorrplot(corr_mat, colors = c("red", "white", "blue"),
+           show.diag = T, lab = T, lab_size = 2.2, type = "upper")
+```
+* En general, las variables tiene poca correlación lineal con el tiempo de supervivencia sin embargo esto no implica que no tengan ningún tipo de relación con la respuesta, tal vez existe asociación de otro tipo (cuadrática, logarítmica, exponencial, entre otras).
+* La poca correlación entre covariables numéricas es algo positivo pues indica que es poco probable que existan problemas de multicolinealidad.
+
+```{r cat-variables}
+bp1 <- ggplot(pbc_imputado, aes(Drug, Time)) +
+  geom_boxplot(aes(fill = Drug)) +
+  theme_minimal() 
+
+bp2 <- ggplot(pbc_imputado, aes(Sex, Time)) +
+  geom_boxplot(aes(fill = Sex)) +
+  theme_minimal()
+
+bp3 <- ggplot(pbc_imputado, aes(Ascites, Time)) +
+  geom_boxplot(aes(fill = Ascites)) +
+  theme_minimal()
+
+bp4 <- ggplot(pbc_imputado, aes(Hepatomegaly, Time)) +
+  geom_boxplot(aes(fill = Hepatomegaly)) +
+  theme_minimal()
+
+bp5 <- ggplot(pbc_imputado, aes(Spiders, Time)) +
+  geom_boxplot(aes(fill = Spiders)) +
+  theme_minimal()
+
+bp6 <- ggplot(pbc_imputado, aes(Edema, Time)) +
+  geom_boxplot(aes(fill = Edema)) +
+  theme_minimal()
+
+bp7 <- ggplot(pbc_imputado, aes(Histologic_stage, Time)) +
+  geom_boxplot(aes(fill = Histologic_stage)) +
+  theme_minimal()
+
+ggpubr::ggarrange(bp1, bp2, bp3, bp4,
+                  nrow = 2, ncol = 2)
+ggpubr::ggarrange(bp5, bp6, bp7,
+                  nrow = 2, ncol = 2)
+```
+
 
 \subsection{Ajuste de un modelo Weibull}
 
