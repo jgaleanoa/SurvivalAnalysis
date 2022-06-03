@@ -62,7 +62,12 @@ library(ggcorrplot)
 
 \section{Ejercicio 3}
 
-Se tiene a disposición las observaciones de 418 pacientes relativos a la cirrosis biliar primaria. Estos datos provienen del ensayo de May Clinic sobre la enfermedad (PBC, por sus siglas en inglés) del hígado realizado entre 1974 y 1984. A cada paciente se le midieron 17 covariables relacionadas a diversas condiciones médicas. A continuación se presentan las primeras 5 variables de la base de datos.
+Se tiene a disposición las observaciones de 418 pacientes relativos a 
+la cirrosis biliar primaria. Estos datos provienen del ensayo de May
+Clinic sobre la enfermedad (PBC, por sus siglas en inglés) del hígado
+realizado entre 1974 y 1984. A cada paciente se le midieron 17
+covariables relacionadas a diversas condiciones médicas. A continuación
+se presentan las primeras 5 variables de la base de datos.
 
 ```{r Datos-PBC, warning=F}
 pbc <- read.table("PBC.txt", 
@@ -98,16 +103,30 @@ kable(head(pbc[1:5]), longtable = T, booktabs = T, align = "c",
       linesep = "")
 ```
 
-Al revisar de forma exahustiva la base de datos en cuestión, se encontró que algunas de las covariables implicadas contienen datos faltantes en diferentes proporciones. El caso más grave se evidencia en la variable "Triglicerides", donde 136 de las 418 observaciones son NA's.
+Al revisar de forma exahustiva la base de datos en cuestión, se encontró
+que algunas de las covariables implicadas contienen datos faltantes en
+diferentes proporciones. El caso más grave se evidencia en la variable
+"Triglicerides", donde 136 de las 418 observaciones son NA's.
 
-Sin embargo, al tratarse de un conjunto de datos relacionado a un problema sanitario, no es recomendable intentar utilizar métodos de imputación en cualquiera de sus formas, puesto que en determinado momento se puede atribuir un diagnóstico o caracterización errado a un paciente. Esta última consideración puede desembocar en graves conclusiones como falsos positivos o aún peor, falsos negativos, por lo cual, se decide por utilizar la base de datos tal y como se presentó anteriormente para hacer el desarrollo inferencial posterior. 
+Sin embargo, al tratarse de un conjunto de datos relacionado a un
+problema sanitario, no es recomendable intentar utilizar métodos de
+imputación en cualquiera de sus formas, puesto que en determinado
+momento se puede atribuir un diagnóstico o caracterización errado a un
+paciente. Esta última consideración puede desembocar en graves
+conclusiones como falsos positivos o aún peor, falsos negativos, por lo
+cual, se decide por utilizar la base de datos tal y como se presentó
+anteriormente para hacer el desarrollo inferencial posterior. 
 
 \newpage
 \subsection{Análisis descriptivo}
 
-Antes de iniciar el proceso de modelación se realiza un análisis descriptivo de los datos con el propósito de encontrar aquellas variables que, aparentemente, mejor ayuden a explicar el tiempo de falla de los individuos en cuestión.
+Antes de iniciar el proceso de modelación se realiza un análisis
+descriptivo de los datos con el propósito de encontrar aquellas
+variables que, aparentemente, mejor ayuden a explicar el tiempo de 
+falla de los individuos en cuestión.
 
-Inicialmente se realiza un histograma del tiempo de falla para tener una idea inicial de la forma distribucional de la variable de interés
+Inicialmente se realiza un histograma del tiempo de falla para tener 
+una idea inicial de la forma distribucional de la variable de interés
 
 ```{r hist-time, fig.cap="Distribución del tiempo de falla", warning=F}
 ggplot(pbc, aes(Time)) +
@@ -119,9 +138,12 @@ ggplot(pbc, aes(Time)) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-Se aprecia cierto nivel de asimetría positiva lo cual sugiere que una distribución como la Weibull se podría ajustar bien al tiempo de falla.
+Se aprecia cierto nivel de asimetría positiva lo cual sugiere que una
+distribución como la Weibull se podría ajustar bien al tiempo de falla.
 
-Se decide hacer un pequeño análisis de correlación entre ellas para escoger las que mejor expliquen el tiempo de falla y además evitar posible problemas de multicolinealidad
+Se decide hacer un pequeño análisis de correlación entre ellas para
+escoger las que mejor expliquen el tiempo de falla y además evitar
+posible problemas de multicolinealidad
 
 ```{r corr-mat, fig.height=7, fig.width=7, fig.cap="Correlación entre variables numéricas"}
 corr_mat <- pbc %>% 
@@ -134,8 +156,12 @@ ggcorrplot(corr_mat, colors = c("red", "white", "blue"),
            show.diag = T, lab = T, lab_size = 3, type = "upper")
 ```
 
-* En general, las variables tiene poca correlación lineal con el tiempo de supervivencia sin embargo esto no implica que no tengan ningún tipo de relación con la respuesta, tal vez existe asociación de otro tipo (cuadrática, logarítmica, exponencial, entre otras).    
-* La poca correlación entre covariables numéricas es algo positivo pues indica que es poco probable que existan problemas de multicolinealidad.
+* En general, las variables tiene poca correlación lineal con el tiempo
+de supervivencia sin embargo esto no implica que no tengan ningún tipo
+de relación con la respuesta, tal vez existe asociación de otro tipo
+(cuadrática, logarítmica, exponencial, entre otras).    
+* La poca correlación entre covariables numéricas es algo positivo pues
+indica que es poco probable que existan problemas de multicolinealidad.
 
 ```{r cat-variables, fig.cap="Análisis de variables categoricas", fig.height=7, fig.width=7}
 bp1 <- ggplot(pbc, aes(Drug, Time)) +
@@ -171,11 +197,35 @@ ggpubr::ggarrange(bp1, bp2, bp3, bp4,bp5, bp6, bp7,
                   nrow = 4, ncol = 2)
 ```
 
-Del conjunto anterior de gráficos, se puede notar que, no existe una diferencia marcada en el tiempo de supervivencia de los pacientes en los diferentes niveles de la covariable "Drug", lo cuál podría dar un indicio de que el medicamento suminstrado (D-penicillamine) podría no ser significativo para explicar el tiempo de supervivencia. Esta observación se puede extender de manera similar a la covariable "Sex" (Masculino o Femenino). Por otro lado, considerando los regresores "Hepatomegaly" y "Spiders" (ambas condiciones médicas), se puede observar que aunque las cajas se desplazan de forma relativa, en ambos casos esta relación respecto al tiempo de supervivecia podría no ser significativa para los modelos a construír. Para los tiempos de supervivencia relacionados a los pacientes con edema, se puede notar que, en el nivel de esta covariable que da cuenta de los pacientes que padecen de la condición a pesar de haber sido tratados, se encuentran una cantidad de tiempos de supervivencia atípicos y de esta forma, se permite ver una relación marcada de este regreson con la respuesta de interés. Para los demás regresores en el conjunto de datos "Ascites" e "Histologic Stage" (ambas condiciones médicas igualmente) también se puede concluír una relación destacable con la variable respuesta, lo que permite intuír significancia de las mismas para el modelo de regresión. 
+Del conjunto anterior de gráficos, se puede notar que, no existe una
+diferencia marcada en el tiempo de supervivencia de los pacientes en 
+los diferentes niveles de la covariable "Drug", lo cuál podría dar un
+indicio de que el medicamento suminstrado (D-penicillamine) podría no
+ser significativo para explicar el tiempo de supervivencia. Esta
+observación se puede extender de manera similar a la covariable "Sex"
+(Masculino o Femenino). Por otro lado, considerando los regresores
+"Hepatomegaly" y "Spiders" (ambas condiciones médicas), se puede
+observar que aunque las cajas se desplazan de forma relativa, en ambos
+casos esta relación respecto al tiempo de supervivecia podría no ser
+significativa para los modelos a construír. Para los tiempos de
+supervivencia relacionados a los pacientes con edema, se puede notar
+que, en el nivel de esta covariable que da cuenta de los pacientes que
+padecen de la condición a pesar de haber sido tratados, se encuentran
+una cantidad de tiempos de supervivencia atípicos y de esta forma, se
+permite ver una relación marcada de este regreson con la respuesta de
+interés. Para los demás regresores en el conjunto de datos "Ascites" e
+"Histologic Stage" (ambas condiciones médicas igualmente) también se
+puede concluír una relación destacable con la variable respuesta, lo
+que permite intuír significancia de las mismas para el modelo de
+regresión. 
 
 \subsection{Ajuste de un modelo Weibull}
 
-Luego de realizar el análisis descriptivo, se ajusta un modelo Weibull paramétrico con todas las covariables y mediante el método backward se van eliminando secuencialmente aquellas que no sean significativas para explicar el tiempo de falla.
+Luego de realizar el análisis descriptivo, se ajusta un modelo Weibull
+paramétrico con todas las covariables y mediante el método backward se
+van eliminando secuencialmente aquellas que no sean significativas para
+explicar el tiempo de falla. El proceso de selección de variable se
+ilustra en la siguiente tabla:x
 
 ```{r}
 wei_full <- survreg(Surv(Time, Status) ~ ., data = pbc)
@@ -218,7 +268,17 @@ wei10 <- survreg(formulagen(c("Spiders", "Triglicerides",
                              "Serum_cholesterol", "Histologic_stage")),
                 data = pbc)
 
-
+covs_out <- c("Spiders", "Triglicerides", "Alkaline phosphatase",
+              "Ascites", "Hepatomegaly", "Platelets", "Sex",
+              "Serum cholesterol")
+pvalues <- c(0.9672, 0.9491, 0.8138, 0.83, 0.7488, 0.5281, 0.3072, 0.2008)
+resumen_dep <- data.frame(Iteracion = 1:8,
+                          Covariable = covs_out,
+                          ValorP = pvalues)
+kable(resumen_dep, longtable = T, booktabs = T, align = "c",
+      col.names = c("Iteración", "Covariable eliminada", "Valor - P"),
+      caption = "Selección de variables backward",
+      linesep = "")
 # Drug + Age + Sex + Ascites +
 #                    Hepatomegaly + Edema + Serum_bilirubin +
 #                    Serum_cholesterol + Albumin + Urine_copper +
@@ -226,13 +286,135 @@ wei10 <- survreg(formulagen(c("Spiders", "Triglicerides",
 #                   Platelets + Prothrombin_time + Histologic_stage
 ```
 
-* Para el modelo completo la covariable menos significativa resulto ser "Spiders" con un valor - p de 0.9672.
-* Triglicerides 0.9491
-* Alkaline phophatase 0.81377
-* Ascites 0.82999
-* Hepatomegaly 0.7488
-* Platelets 0.5281
-* Sex 0.3072
-* Serum_cholesterol 0.2008
-* Histologic_stage 0.0491
-* SGOT 0.04942
+Una vez en el proceso de depuración, se llegó a que la covariable
+"Histologic stage" presentó en uno de sus niveles (pues es de tipo
+factor) un valor P asociado de 0.0491 el cuál en este caso y usando una
+significancia usual se concluye como polémico. Ante la indecisión frente
+a este valor P, se decidió ajustar otro modelo excluyendo dicha
+covariable para posteriormente comparar mediante el criterio de
+información de Akaike con el modelo que sí incluye la susodicha.
+Así entonces, se obtuvo que el modelo que sí incluye el regresor
+"Histologic stage" reporta un AIC un tanto menor, por lo cual se puede
+decidir en este caso por incluir dicha variable en el modelo final.
+
+Así entonces, el modelo final obtenido después de la selección de
+variables dejando únicamente las covariables con un valor-p asociado
+menor o igual a una significancia usual, se reporta como sigue: 
+
+```{r}
+wei9_res <- summary(wei9)
+rownames(wei9_res$table)[1] <- "Intercept" 
+kable(wei9_res$table[, 1:2], longtable = T, linesep = "",
+      booktabs = T, align = "c", digits = 5,
+      col.names = c("Coeficiente estimado", "Error estándar"),
+      row.names = T,
+      caption = "Parámetros estimados del modelo Weibull")
+```
+
+\subsection{Modelo de Cox}
+
+Una vez obtenido el modelo paramétrico considerando una distribución
+Weibull para los tiempos de falla, ahora lo que se desea es ajustar un
+modelo semiparamétrico en el sentido de no hacer supuestos
+distribucionales sobre los tiempos de falla. Para dicha causa es idóneo
+el modelo de Cox y así se inicia por realizar el mismo procedimiento
+anterior de selección de variables. El resumen de dicha selección se
+presenta como sigue
+
+```{r}
+cox_full <- coxph(Surv(Time, Status) ~ ., data = pbc)
+
+cox2 <- coxph(formulagen("Ascites"), data = pbc)
+cox3 <- coxph(formulagen(c("Ascites", "Alkaline_phosphatase")),
+              data = pbc)
+cox4 <- coxph(formulagen(c("Ascites", "Alkaline_phosphatase",
+                           "Triglicerides")),
+              data = pbc)
+cox5 <- coxph(formulagen(c("Ascites", "Alkaline_phosphatase",
+                           "Triglicerides", "Spiders")),
+              data = pbc)
+cox6 <- coxph(formulagen(c("Ascites", "Alkaline_phosphatase",
+                           "Triglicerides", "Spiders", "Hepatomegaly")),
+              data = pbc)
+cox7 <- coxph(formulagen(c("Ascites", "Alkaline_phosphatase",
+                           "Triglicerides", "Spiders",
+                           "Hepatomegaly", "Platelets")),
+              data = pbc)
+cox8 <- coxph(formulagen(c("Ascites", "Alkaline_phosphatase",
+                           "Triglicerides", "Spiders",
+                           "Hepatomegaly", "Platelets",
+                          "Sex")),
+              data = pbc) 
+cox9 <- coxph(formulagen(c("Ascites", "Alkaline_phosphatase",
+                           "Triglicerides", "Spiders",
+                           "Hepatomegaly", "Platelets",
+                           "Sex", "Serum_cholesterol")),
+              data = pbc) 
+
+covs_out_cox <- c("Ascites", "Alkaline phosphatase", "Triglicerides",
+                "Spiders", "Hepatomegaly", "Platelets", "Sex",
+                "Serum cholesterol")
+pvalues_cox <- c(0.9988, 0.9804, 0.8377, 0.7699,
+                 0.7198, 0.5642, 0.2905, 0.1775)
+resumen_dep_cox <- data.frame(Iteracion = 1:8,
+                          Covariable = covs_out_cox,
+                          ValorP = pvalues_cox)
+kable(resumen_dep_cox, longtable = T, booktabs = T, align = "c",
+      col.names = c("Iteración", "Covariable eliminada", "Valor - P"),
+      caption = "Selección de variables backward Cox",
+      linesep = "")
+```
+
+Del proceso de selección de variables para el modelo de Cox se puede
+notar que en este caso también se excluyeron las mismas covariables que
+se excluyeron en el proceso de selección para el modelo paramétrico con
+respuesta Weibull. Por lo tanto ambos modelos tendrán la misma
+estructura en términos de regresores y con esto se reportan los
+coeficientes estimados para el modelo semiparamétrico de Cox como sigue:
+
+```{r}
+cox9_res <- summary(cox9)
+kable(cox9_res$coefficients[, c(1, 3)], longtable = T, linesep = "",
+      booktabs = T, align = "c", digits = 5,
+      col.names = c("Coeficiente estimado", "Error estándar"),
+      row.names = T,
+      caption = "Parámetros estimados del modelo de Cox")
+```
+
+\subsection{Comparación de ambos modelos}
+
+Observando los resultados obtenidos para ambos modelos, se puede
+apreciar que la estimación de los parámetros asociados a cada covariable
+no tienen algún parecido razonable. Esto se explica gracias a que los
+parámetros estimados según el modelo Weibull están en la escala del
+logaritmo del tiempo de supervivencia y en el modelo semiparamétrico de
+Cox se encuentran en la escala del hazard. Recuerde que con la relación
+$\dot{\beta_j} = -\frac{\beta_j}{\sigma}$, los parámetros del modelo
+Weibull se pueden transformar a la escala del hazard. Dicho esto, la
+comparación de los parámetros se hace como sigue:
+
+```{r}
+comparison <- data.frame(Weibull = coef(wei9)[-1],
+                      Cox = coef(cox9),
+                      Weibull_ph = -coef(wei9)[-1]/wei9$scale)
+rownames(comparison)[c(4, 6, 8:11)] <- c("SerumBilirubin",
+                                         "UrineCopper",
+                                         "ProthrombinTime",
+                                         "HistologicStage2",
+                                         "HistologicStage3",
+                                         "HistologicStage4")
+
+kable(comparison, longtable = T, booktabs = T, align = "c",
+      col.names = c("Weibull $log(T)$", "Cox PH",
+                    "$-\\frac{\\hat{\\beta}}{\\hat{\\sigma}} \\ \\hat{\\sigma} = 0.60578$"),
+      escape = F, linesep = "")
+```
+De esta tabla se puede observar que, en general, los parámetros
+estimados para cada modelo en términos del hazard son considerablemente
+similares . Esto da cuenta de que el ajuste de ambos modelos es correcto
+respectivo a su especificación.
+
+\subsection{Supervivencia respecto a grupos}
+
+
+
