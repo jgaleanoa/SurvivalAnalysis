@@ -72,7 +72,9 @@ pbc <- read.table("PBC.txt",
                                 "Serum_cholesterol", "Albumin",
                                 "Urine_copper", "Alkaline_phosphatase",
                                 "SGOT", "Triglicerides", "Platelets",
-                                "Prothrombin_time", "Histologic_stage")) %>% 
+                                "Prothrombin_time","Histologic_stage"))
+pbc[pbc == "."] <- NA
+pbc <- pbc %>% 
   mutate(Drug = as.factor(Drug),
          Sex = as.factor(Sex),
          Ascites = as.factor(Ascites),
@@ -86,141 +88,151 @@ pbc <- read.table("PBC.txt",
          Triglicerides = as.numeric(Triglicerides),
          Platelets = as.numeric(Platelets),
          Prothrombin_time = as.numeric(Prothrombin_time),
-         Histologic_stage = as.factor(Histologic_stage)) 
+         Histologic_stage = as.factor(Histologic_stage),
+         Status = if_else(Status < 2, 0, 1)) %>% 
+  select(-ID) %>% 
+  drop_na()
 
 kable(head(pbc[1:5]), longtable = T, booktabs = T, align = "c",
       caption = "Datos sobre cirrosis biliar primaria",
       linesep = "")
 ```
-Luego de realizar un análisis visual de las base de datos se encontró que las variables serum cholesterol, urine copper, alkaline phophatase, SGOT, triglicerides, platelets y prothrombin presentan valores faltantes por lo cual se hace necesario realizar un proceso de imputación de datos NA, para esto se realizan histogramas de dichas variables para determinar medidas pertinentes para imputar.
 
-```{r Imputacion-NAs, fig.cap="Distribuciones de las variables numéricas con NAs", warning=F, fig.width=7}
-p1 <- ggplot(pbc, aes(Serum_cholesterol)) +
-  geom_histogram(bins = nclass.Sturges(pbc$Serum_cholesterol),
-                 col = "black", fill = "cyan") +
-  labs(x = "Serum cholesterol", y = "Frecuencia") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.text = element_text(size = 7))
+Al revisar de forma exahustiva la base de datos en cuestión, se encontró que algunas de las covariables implicadas contienen datos faltantes en diferentes proporciones. El caso más grave se evidencia en la variable "Triglicerides", donde 136 de las 418 observaciones son NA's.
 
-p2 <- ggplot(pbc, aes(Urine_copper)) +
-  geom_histogram(bins = nclass.Sturges(pbc$Urine_copper),
-                 col = "black", fill = "cyan") +
-  labs(x = "Urine copper", y = "") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.text = element_text(size = 7))
+Sin embargo, al tratarse de un conjunto de datos relacionado a un problema sanitario, no es recomendable intentar utilizar métodos de imputación en cualquiera de sus formas, puesto que en determinado momento se puede atribuir un diagnóstico o caracterización errado a un paciente. Esta última consideración puede desembocar en graves conclusiones como falsos positivos o aún peor, falsos negativos, por lo cual, se decide por utilizar la base de datos tal y como se presentó anteriormente para hacer el desarrollo inferencial posterior. 
 
-
-p3 <- ggplot(pbc, aes(Alkaline_phosphatase)) +
-  geom_histogram(bins = nclass.Sturges(pbc$Alkaline_phosphatase),
-                 col = "black", fill = "cyan") +
-  labs(x = "Alkaline phosphatase", y = "") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.text = element_text(size = 7))
-
-p4 <- ggplot(pbc, aes(SGOT)) +
-  geom_histogram(bins = nclass.Sturges(pbc$SGOT),
-                 col = "black", fill = "cyan") +
-  labs(x = "SGOT", y = "") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.text = element_text(size = 7))
-
-p5 <- ggplot(pbc, aes(Triglicerides)) +
-  geom_histogram(bins = nclass.Sturges(pbc$Triglicerides),
-                 col = "black", fill = "cyan") +
-  labs(x = "Triglicerides", y = "Frecuencia") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.text = element_text(size = 7))
-
-p6 <- ggplot(pbc, aes(Platelets)) +
-  geom_histogram(bins = nclass.Sturges(pbc$Platelets),
-                 col = "black", fill = "cyan") +
-  labs(x = "Platelets", y = "") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.text = element_text(size = 7))
-
-p7 <- ggplot(pbc, aes(Prothrombin_time)) +
-  geom_histogram(bins = nclass.Sturges(pbc$Prothrombin_time),
-                 col = "black", fill = "cyan") +
-  labs(x = "Prothrombin time", y = "") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.text = element_text(size = 7))
-
-ggpubr::ggarrange(p1, p2, p3, p4, p5, p6, p7,
-                  nrow = 2, ncol = 4)
-```
-Se puede apreciar que, en general, las variables con valores faltantes tienen algún tipo de asimetría por lo que imputar datos con la media no sería adecuado puesto que es una medida que se ve influenciada por outliers, por lo tanto se considera más pertinente usar la mediana como medida de imputación.
-
-```{r Imputacion}
-vars_imputar <- pbc[,apply(pbc, 2, function (x) {sum(is.na(x))}) > 0] %>% 
-  names()
-medianas_vars <- as.list(apply(pbc[, vars_imputar], 2, median, na.rm = T))
-
-pbc_imputado <- pbc %>% 
-  replace_na(medianas_vars) %>% 
-  mutate(Status = as.factor(if_else(Status < 2, 0, 1)))
-```
-
+\newpage
 \subsection{Análisis descriptivo}
 
-Antes de inicar el proceso de modelación se realiza un análisis descriptivo de los datos con el propósito de encontrar aquellas variables que, aparentemente, mejor ayuden a explicar el tiempo de falla de los individuos en cuestión.
+Antes de iniciar el proceso de modelación se realiza un análisis descriptivo de los datos con el propósito de encontrar aquellas variables que, aparentemente, mejor ayuden a explicar el tiempo de falla de los individuos en cuestión.
 
-Teniendo en cuenta que las variables numéricas fueron imputadas previamente, se decide hacer un pequeño análisis de correlación entre ellas para escoger las que mejor expliquen el tiempo de falla y además evitar posible problemas de multicolinealidad
+Inicialmente se realiza un histograma del tiempo de falla para tener una idea inicial de la forma distribucional de la variable de interés
 
-```{r}
-corr_mat <- pbc_imputado %>% 
+```{r hist-time, fig.cap="Distribución del tiempo de falla", warning=F}
+ggplot(pbc, aes(Time)) +
+  geom_histogram(bins = nclass.Sturges(pbc$Time),
+                 col = "black", fill = "cyan") +
+  labs(title ="Histograma del tiempo de falla",
+       x = "Time", y = "Frecuencia") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Se aprecia cierto nivel de asimetría positiva lo cual sugiere que una distribución como la Weibull se podría ajustar bien al tiempo de falla.
+
+Se decide hacer un pequeño análisis de correlación entre ellas para escoger las que mejor expliquen el tiempo de falla y además evitar posible problemas de multicolinealidad
+
+```{r corr-mat, fig.height=7, fig.width=7, fig.cap="Correlación entre variables numéricas"}
+corr_mat <- pbc %>% 
   select(Time, Age, Serum_bilirubin, Serum_cholesterol, Albumin,
          Urine_copper, Alkaline_phosphatase, SGOT, Triglicerides, 
          Platelets, Prothrombin_time) %>% 
   cor()
 
 ggcorrplot(corr_mat, colors = c("red", "white", "blue"),
-           show.diag = T, lab = T, lab_size = 2.2, type = "upper")
+           show.diag = T, lab = T, lab_size = 3, type = "upper")
 ```
-* En general, las variables tiene poca correlación lineal con el tiempo de supervivencia sin embargo esto no implica que no tengan ningún tipo de relación con la respuesta, tal vez existe asociación de otro tipo (cuadrática, logarítmica, exponencial, entre otras).
+
+* En general, las variables tiene poca correlación lineal con el tiempo de supervivencia sin embargo esto no implica que no tengan ningún tipo de relación con la respuesta, tal vez existe asociación de otro tipo (cuadrática, logarítmica, exponencial, entre otras).    
 * La poca correlación entre covariables numéricas es algo positivo pues indica que es poco probable que existan problemas de multicolinealidad.
 
-```{r cat-variables}
-bp1 <- ggplot(pbc_imputado, aes(Drug, Time)) +
+```{r cat-variables, fig.cap="Análisis de variables categoricas", fig.height=7, fig.width=7}
+bp1 <- ggplot(pbc, aes(Drug, Time)) +
   geom_boxplot(aes(fill = Drug)) +
   theme_minimal() 
 
-bp2 <- ggplot(pbc_imputado, aes(Sex, Time)) +
+bp2 <- ggplot(pbc, aes(Sex, Time)) +
   geom_boxplot(aes(fill = Sex)) +
   theme_minimal()
 
-bp3 <- ggplot(pbc_imputado, aes(Ascites, Time)) +
+bp3 <- ggplot(pbc, aes(Ascites, Time)) +
   geom_boxplot(aes(fill = Ascites)) +
   theme_minimal()
 
-bp4 <- ggplot(pbc_imputado, aes(Hepatomegaly, Time)) +
+bp4 <- ggplot(pbc, aes(Hepatomegaly, Time)) +
   geom_boxplot(aes(fill = Hepatomegaly)) +
   theme_minimal()
 
-bp5 <- ggplot(pbc_imputado, aes(Spiders, Time)) +
+bp5 <- ggplot(pbc, aes(Spiders, Time)) +
   geom_boxplot(aes(fill = Spiders)) +
   theme_minimal()
 
-bp6 <- ggplot(pbc_imputado, aes(Edema, Time)) +
+bp6 <- ggplot(pbc, aes(Edema, Time)) +
   geom_boxplot(aes(fill = Edema)) +
   theme_minimal()
 
-bp7 <- ggplot(pbc_imputado, aes(Histologic_stage, Time)) +
+bp7 <- ggplot(pbc, aes(Histologic_stage, Time)) +
   geom_boxplot(aes(fill = Histologic_stage)) +
+  labs(x = "Histologic stage", fill = "Histologic stage") +
   theme_minimal()
 
-ggpubr::ggarrange(bp1, bp2, bp3, bp4,
-                  nrow = 2, ncol = 2)
-ggpubr::ggarrange(bp5, bp6, bp7,
-                  nrow = 2, ncol = 2)
+ggpubr::ggarrange(bp1, bp2, bp3, bp4,bp5, bp6, bp7,
+                  nrow = 4, ncol = 2)
 ```
 
+Del conjunto anterior de gráficos, se puede notar que, no existe una diferencia marcada en el tiempo de supervivencia de los pacientes en los diferentes niveles de la covariable "Drug", lo cuál podría dar un indicio de que el medicamento suminstrado (D-penicillamine) podría no ser significativo para explicar el tiempo de supervivencia. Esta observación se puede extender de manera similar a la covariable "Sex" (Masculino o Femenino). Por otro lado, considerando los regresores "Hepatomegaly" y "Spiders" (ambas condiciones médicas), se puede observar que aunque las cajas se desplazan de forma relativa, en ambos casos esta relación respecto al tiempo de supervivecia podría no ser significativa para los modelos a construír. Para los tiempos de supervivencia relacionados a los pacientes con edema, se puede notar que, en el nivel de esta covariable que da cuenta de los pacientes que padecen de la condición a pesar de haber sido tratados, se encuentran una cantidad de tiempos de supervivencia atípicos y de esta forma, se permite ver una relación marcada de este regreson con la respuesta de interés. Para los demás regresores en el conjunto de datos "Ascites" e "Histologic Stage" (ambas condiciones médicas igualmente) también se puede concluír una relación destacable con la variable respuesta, lo que permite intuír significancia de las mismas para el modelo de regresión. 
 
 \subsection{Ajuste de un modelo Weibull}
 
+Luego de realizar el análisis descriptivo, se ajusta un modelo Weibull paramétrico con todas las covariables y mediante el método backward se van eliminando secuencialmente aquellas que no sean significativas para explicar el tiempo de falla.
+
+```{r}
+wei_full <- survreg(Surv(Time, Status) ~ ., data = pbc)
+
+formulagen <- function(cov){
+  nombres <- names(pbc[,-(1:3)])
+  ind <- which(!is.na(match(nombres,cov)))
+  paste0("Surv(Time,Status) ~ ",paste(nombres[-ind], collapse = " + ")) %>%
+    as.formula()
+}
+wei2 <- survreg(formulagen("Spiders"), data = pbc)
+wei3 <- survreg(formulagen(c("Spiders", "Triglicerides")),
+                data = pbc)
+wei4 <- survreg(formulagen(c("Spiders", "Triglicerides", 
+                             "Alkaline_phosphatase")),
+                data = pbc)
+wei5 <- survreg(formulagen(c("Spiders", "Triglicerides", 
+                             "Alkaline_phosphatase", "Ascites")),
+                data = pbc)
+wei6 <- survreg(formulagen(c("Spiders", "Triglicerides", 
+                             "Alkaline_phosphatase", "Ascites",
+                             "Hepatomegaly")),
+                data = pbc)
+wei7 <- survreg(formulagen(c("Spiders", "Triglicerides", 
+                             "Alkaline_phosphatase", "Ascites",
+                             "Hepatomegaly", "Platelets")),
+                data = pbc)
+wei8 <- survreg(formulagen(c("Spiders", "Triglicerides", 
+                             "Alkaline_phosphatase", "Ascites",
+                             "Hepatomegaly", "Platelets", "Sex")),
+                data = pbc)
+wei9 <- survreg(formulagen(c("Spiders", "Triglicerides", 
+                             "Alkaline_phosphatase", "Ascites",
+                             "Hepatomegaly", "Platelets", "Sex",
+                             "Serum_cholesterol")),
+                data = pbc)
+wei10 <- survreg(formulagen(c("Spiders", "Triglicerides", 
+                             "Alkaline_phosphatase", "Ascites",
+                             "Hepatomegaly", "Platelets", "Sex",
+                             "Serum_cholesterol", "Histologic_stage")),
+                data = pbc)
+
+
+# Drug + Age + Sex + Ascites +
+#                    Hepatomegaly + Edema + Serum_bilirubin +
+#                    Serum_cholesterol + Albumin + Urine_copper +
+#                    Alkaline_phosphatase + SGOT + Triglicerides +
+#                   Platelets + Prothrombin_time + Histologic_stage
+```
+
+* Para el modelo completo la covariable menos significativa resulto ser "Spiders" con un valor - p de 0.9672.
+* Triglicerides 0.9491
+* Alkaline phophatase 0.81377
+* Ascites 0.82999
+* Hepatomegaly 0.7488
+* Platelets 0.5281
+* Sex 0.3072
+* Serum_cholesterol 0.2008
+* Histologic_stage 0.0491
+* SGOT 0.04942
