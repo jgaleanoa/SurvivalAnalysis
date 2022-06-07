@@ -141,9 +141,10 @@ ggplot(pbc, aes(Time)) +
 Se aprecia cierto nivel de asimetría positiva lo cual sugiere que una
 distribución como la Weibull se podría ajustar bien al tiempo de falla.
 
-Se decide hacer un pequeño análisis de correlación entre ellas para
-escoger las que mejor expliquen el tiempo de falla y además evitar
-posible problemas de multicolinealidad
+Se decide hacer un pequeño análisis de correlación entre las covariables
+numéricas para tener un panorama incial respecto a las que mejor podrían
+explicar el tiempo de falla y evitar posibles problemas de
+multicolinealidad.
 
 ```{r corr-mat, fig.height=7, fig.width=7, fig.cap="Correlación entre variables numéricas"}
 corr_mat <- pbc %>% 
@@ -156,8 +157,8 @@ ggcorrplot(corr_mat, colors = c("red", "white", "blue"),
            show.diag = T, lab = T, lab_size = 3, type = "upper")
 ```
 
-* En general, las variables tiene poca correlación lineal con el tiempo
-de supervivencia sin embargo esto no implica que no tengan ningún tipo
+* En general, las variables tienen poca correlación lineal con el tiempo
+de supervivencia, sin embargo esto no implica que no tengan ningún tipo
 de relación con la respuesta, tal vez existe asociación de otro tipo
 (cuadrática, logarítmica, exponencial, entre otras).    
 * La poca correlación entre covariables numéricas es algo positivo pues
@@ -212,11 +213,11 @@ supervivencia relacionados a los pacientes con edema, se puede notar
 que, en el nivel de esta covariable que da cuenta de los pacientes que
 padecen de la condición a pesar de haber sido tratados, se encuentran
 una cantidad de tiempos de supervivencia atípicos y de esta forma, se
-permite ver una relación marcada de este regreson con la respuesta de
+permite ver una relación marcada de este regresor con la respuesta de
 interés. Para los demás regresores en el conjunto de datos "Ascites" e
 "Histologic Stage" (ambas condiciones médicas igualmente) también se
-puede concluír una relación destacable con la variable respuesta, lo
-que permite intuír significancia de las mismas para el modelo de
+puede concluir una relación destacable con la variable respuesta, lo
+que permite intuir significancia de las mismas para el modelo de
 regresión. 
 
 \subsection{Ajuste de un modelo Weibull}
@@ -224,8 +225,8 @@ regresión.
 Luego de realizar el análisis descriptivo, se ajusta un modelo Weibull
 paramétrico con todas las covariables y mediante el método backward se
 van eliminando secuencialmente aquellas que no sean significativas para
-explicar el tiempo de falla. El proceso de selección de variable se
-ilustra en la siguiente tabla:x
+explicar el tiempo de falla. El proceso de selección de variables se
+ilustra en la siguiente tabla:
 
 ```{r}
 wei_full <- survreg(Surv(Time, Status) ~ ., data = pbc)
@@ -304,9 +305,10 @@ menor o igual a una significancia usual, se reporta como sigue:
 ```{r}
 wei9_res <- summary(wei9)
 rownames(wei9_res$table)[1] <- "Intercept" 
-kable(wei9_res$table[, 1:2], longtable = T, linesep = "",
+kable(wei9_res$table[, c(1:2, 4)], longtable = T, linesep = "",
       booktabs = T, align = "c", digits = 5,
-      col.names = c("Coeficiente estimado", "Error estándar"),
+      col.names = c("Coeficiente estimado", "Error estándar",
+                    "Valor - P"),
       row.names = T,
       caption = "Parámetros estimados del modelo Weibull")
 ```
@@ -374,9 +376,10 @@ coeficientes estimados para el modelo semiparamétrico de Cox como sigue:
 
 ```{r}
 cox9_res <- summary(cox9)
-kable(cox9_res$coefficients[, c(1, 3)], longtable = T, linesep = "",
+kable(cox9_res$coefficients[, c(1, 3, 5)], longtable = T, linesep = "",
       booktabs = T, align = "c", digits = 5,
-      col.names = c("Coeficiente estimado", "Error estándar"),
+      col.names = c("Coeficiente estimado", "Error estándar",
+                    "Valor - P"),
       row.names = T,
       caption = "Parámetros estimados del modelo de Cox")
 ```
@@ -414,7 +417,169 @@ estimados para cada modelo en términos del hazard son considerablemente
 similares . Esto da cuenta de que el ajuste de ambos modelos es correcto
 respectivo a su especificación.
 
-\subsection{Supervivencia respecto a grupos}
+\subsection{Supervivencia respecto a algunos grupos}
+
+Es de interés saber si las covariables sex, ascites y spiders ayudan a
+explicar el tiempo de supervivencia de los pacientes que padecen
+cirrosis biliar primaria. Para esta causa es útil ajustar un modelo
+semiparamétrico de Cox y un modelo paramétrico Weibull en haras de
+determinar la significancia de dichos regresores y por ende si su aporte
+al tiempo de supervivencia se puede considerar como importante. Los
+modelos obtenidos se resumen en las siguientes tablas:
+
+```{r}
+# Ajuste modelos
+weid <- survreg(Surv(Time, Status) ~ Sex + Ascites + Spiders,
+                data = pbc)
+coxd <- coxph(Surv(Time, Status) ~ Sex + Ascites + Spiders,
+             data = pbc)
+# Resumenes
+res_weid <- summary(weid)
+res_coxd <- summary(coxd)
+
+# Fixing garbage
+rownames(res_weid$table)[1] <- c("Intercept")
+
+# Tablas 
+kable(res_weid$table[, c(1:2, 4)], longtable = T, align = "c",
+      col.names = c("Coeficientes estimados", 
+                    "Error estándar", "Valor - P"),
+      digits = 5, caption = "Parámetros modelo Weibull", 
+      booktabs = T)
+
+kable(res_coxd$coefficients[, c(1, 3, 5)], longtable = T, align = "c",
+      col.names = c("Coeficientes estimados",
+                    "Error estándar", "Valor - P"),
+      digits = 5, caption = "Parámetros modelo de Cox",
+      booktabs = T)
+```
+
+De los resultados presentados en las dos tablas anteriores se puede
+apreciar que, usando un nivel de significancia tradicional de
+$\alpha=0.05$ en ambos modelos, las tres covariables implicadas son
+significativas y por lo tanto importantes para explicar el tiempo que
+sobreviven los pacientes a la cirrosis biliar primaria.
+
+Ahora, es de interés ver el comportamiento de la respuesta (tiempo de
+supervivencia) en los diferentes niveles de las covariables 
+para cada modelo. Así entonces, se proponen los siguientes gráficos de
+supervivencia para cada modelo como se muestra a continuación:
+
+```{r plots-wei, fig.cap="Modelo Weibull"}
+malla <- expand.grid(Sex = 0:1, Ascites = 0:1, Spiders = 0:1) %>% 
+  mutate(Sex = as.factor(Sex),
+         Ascites = as.factor(Ascites),
+         Spiders = as.factor(Spiders))
+eval_wei <- function(t, sex, ascites, spiders){
+  sex <- if_else(sex == 0, 0, 1)
+  ascites <- if_else(ascites == 0, 0, 1)
+  spiders <- if_else(spiders == 0, 0, 1)
+  sigma <- weid$scale
+  sistem_aux <- -(weid$coefficients[1] +
+                    weid$coefficients[2] * sex +
+                    weid$coefficients[3] * ascites +
+                    weid$coefficients[4] * spiders)/sigma 
+  sistem <- t^(1/sigma) * exp(sistem_aux)
+  expr <- exp(-sistem)
+  as.numeric(expr)
+}
+for(i in 1:8){
+  times <- 0:4556
+  surv_weid <- eval_wei(times, malla[i, 1],
+                        malla[i, 2], malla[i, 3])
+  comb <- paste0("Sex = ", malla[i, 1],
+                 ", Ascites = ", malla[i, 2],
+                 ", Spiders = ", malla[i, 3])
+  n <- length(times)
+  if(i == 1){
+      curves_wei <- data.frame(Time = times,
+                       Survival = surv_weid,
+                       Combinacion = rep(comb, n))
+
+  }
+  else{
+    aux <- data.frame(Time = times,
+                       Survival = surv_weid,
+                       Combinacion = rep(comb, n))
+    
+    curves_wei <- rbind(curves_wei, aux)
+  }
+}
+
+ggplot(curves_wei, aes(Time, Survival)) +
+  geom_line(aes(col = Combinacion)) +
+  labs(title = "Supervivencia por grupos", 
+       x = "Tiempo", y = "Supervivencia") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r plots-cox, fig.cap="Modelo de Cox"}
+for(i in 1:8){
+  surv_coxd <- survfit(coxd, newdata = malla[i, ])
+  comb <- paste0("Sex = ", malla[i, 1],
+                 ", Ascites = ", malla[i, 2],
+                 ", Spiders = ", malla[i, 3])
+  n <- length(surv_coxd$time)
+  if(i == 1){
+      curves_cox <- data.frame(Time = surv_coxd$time,
+                       Survival = surv_coxd$surv,
+                       Combinacion = rep(comb, n))
+
+  }
+  else{
+    aux <- data.frame(Time = surv_coxd$time,
+                       Survival = surv_coxd$surv,
+                       Combinacion = rep(comb, n))
+    
+    curves_cox <- rbind(curves_cox, aux)
+  }
+}
+
+ggplot(curves_cox, aes(Time, Survival)) +
+  geom_line(aes(col = Combinacion)) +
+  labs(title = "Supervivencia por grupos", 
+       x = "Tiempo", y = "Supervivencia") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Note del resultado anterior qué, los pacientes masculinos que presentan
+ascitis y arañas son los que menor tiempo sobreviven, puesto que pasados
+los 1000 días con la enfermedad, solamente el 6% de los pacientes
+observados sobreviven.
+Véase además que los pacientes que padecen de ascitis, en general son
+los que menor tiempo de supervivencia reportan. Las curvas de
+supervivencia donde el nivel de este factor es 1 (presencia de la
+condición de ascitis), son las 4 curvas ubicadas en la parte inferior
+izquierda del gráfico.
+Finalmente, note que las pacientes del sexo femenino que no presentan
+alguna de las dos condiciones mencionadas, son las que mayor tiempo
+sobreviven a la cirrosis biliar primaria. En particular se aprecia que
+en el día 2000 con la enfermedad desde el diagnóstico, más del 75% de
+las pacientes siguen con vida. Para el día 4000 con la enfermedad
+presente, cerca de la mitad de las pacientes no han experimentado el
+evento de interés, lo cuál es un claro contraste con el caso de los
+masculinos que sí padecen ambos síntomas.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
