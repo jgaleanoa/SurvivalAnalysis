@@ -56,7 +56,76 @@ library(ggcorrplot)
 
 \section{Ejercicio 1}
 
+\subsection{Literal a: Prueba}
+
+Sea $T$ una variable aleatoria continua con f.d.p $f(t;\theta)$ y soporte en $\mathbb{R}^+$, cuya vida media está dada por $E(T)$.
+
+Por definición de valor esperado se sigue que:
+
+\begin{equation*}
+\begin{split}
+E(T) &= \int_0^\infty tf(t;\theta)dt = \int_0^\infty\int_0^tf(t;\theta)dxdt \\
+     &= \int_0^\infty\int_x^\infty f(t;\theta)dtdx \ (\ast)
+\end{split}
+\end{equation*}
+
+Observe que $1 = \int_0^\infty f(t;\theta)dt = \int_0^xf(t;\theta)dt+\int_x^\infty f(t;\theta)dt$, es decir, $\int_x^\infty f(t;\theta)=1-F(t;\theta)$, con $F(x;\theta)$ la f.d.a de $T$ evaluada en $x$.
+
+Luego, reemplazando en $(\ast)$ se sigue que:
+
+\begin{equation*}
+\int_0^\infty\int_x^\infty f(t;\theta)dtdx = \int_0^\infty[1-F(x;\theta)]dx=\int_0^\infty[1-F(t;\theta)]dt
+\end{equation*}
+
+Por lo tanto, si $T$ es una variable aleatoria continua con f.d.p $f(t;\theta)$ y soporte en $\mathbb{R}^+$.
+
+$$E(T) = \int_0^\infty tf(t;\theta)dt=\int_0^\infty[1-F(t;\theta)]dt$$.
+
 \section{Ejercicio 2}
+
+\subsection{Literal a: Prueba Densidad}
+
+Veamos que:
+
+$$
+f(t;\theta,\gamma) = \begin{cases} \frac{1}{\theta}e^{-[\frac{t-\gamma}{\theta}]}, \ t\geq\gamma\\
+0, \ t<\gamma\end{cases}
+$$
+
+Es una densidad de probabilidad.
+
+i) Note que para $\theta>0$ y $\gamma \in \mathbb{R}$ se tiene que $\frac{1}{\theta}>0$ y $exp\left[-\frac{t-\gamma}{\theta}\right]>0$, luego $\frac{1}{\theta} exp\left[-\frac{t-\gamma}{\theta}\right]=f(t;\theta,\gamma)>0$.
+
+Así se verifica que $f(t;\theta,\gamma)>0$ en particular para $t\geq\gamma$ y para $t<0$, $f(t;\theta,\gamma)\equiv 0$ por lo que $\forall \ t \in \mathbb{R} \ f(t;\theta,\gamma)$ es no negativa.
+
+ii) Veamos que $f(t;\theta,\gamma)$ está normalizada en el conjunto de los reales:
+
+$$
+\int_\mathbb{R} f(t;\theta,\gamma)dt=\int_\gamma^\infty f(t;\theta,\gamma)dt=\int_\gamma^\infty \frac{1}{\theta}e^{-\frac{t-\gamma}{\theta}}dt \ (**)
+$$
+
+Sea $z=\frac{t-\gamma}{\theta}$, esta sustitución convierte a $(**)$ en:
+
+\begin{equation*}
+\int_0^\infty \frac{1}{\theta} e^{-\frac{z}{\theta}}dz=-e^{\frac{z}{\theta}}|_0^\infty=\cancelto{0}{[\lim_{t\to\infty} -e^{-\frac{z}{\theta}}]}+\cancelto{0}{e^{\frac{z}{\theta}}|_{z=0}}=1
+\end{equation*}
+
+Así, como $f(t;\theta,\gamma)\geq0 \ \forall \ t \in \mathbb{R}$ y $\int_{\mathbb{R}}f(t;\theta,\gamma)dt=1$, se puede concluír que $f(t;\theta,\gamma)$ es en efecto una densidad de probabilidad.
+
+**Nota:** Se extendió la función a la recta real, pero bastaba con verificar que $f(t;\theta,\gamma)>0 \ \forall t \ \in \ S_T$ y $\int_{S_T}f(t;\theta,\gamma)dt=1$
+
+Donde $S_T$ es el soporte de $T$ y está dado por:
+
+$$
+S_T = \{t \in \mathbb{R}\ | \ t\geq\gamma\}
+$$
+\subsection{Literal b: Prueba vida media}
+
+Sea $X=T-\gamma$ con $\gamma \in \mathbb{R}$. Luego, $X \sim exp(\theta)$ pues $f(x;\theta) = \frac{1}{\theta} e^{-\frac{x}{\theta}}$ para $x\geq0$.
+
+Así $E(X) = E(T-\gamma) = E(T)-\gamma = \theta$, por tanto $E(T) = \theta+\gamma$.
+
+Por lo tanto, la vida media de $T$ está dada por $E(T) = \theta+\gamma$.
 
 <!-- Juanjo y Gaviria -->
 
