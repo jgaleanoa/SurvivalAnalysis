@@ -81,6 +81,83 @@ Por lo tanto, si $T$ es una variable aleatoria continua con f.d.p $f(t;\theta)$ 
 
 $$E(T) = \int_0^\infty tf(t;\theta)dt=\int_0^\infty[1-F(t;\theta)]dt$$.
 
+<!-- Santiago Simulation -->
+\subsection{Literal b: Simulación}
+
+Sea $T \sim Weibull(\eta = 7.2393, \beta=12.3559)$ procedemos a simular 200 valores usando rweibull del software estadístico R fijando una **semilla = 3141592** que nos permita replicabilidad. 
+
+
+
+```{r, echo=FALSE, include=FALSE}
+set.seed(3141592)
+t <- rweibull(200, shape=7.2393, scale=12.3559)
+model <- survreg(Surv(t)~1, dist="weibull")
+model
+```
+
+
+```{r, echo = FALSE, warning=FALSE}
+ggplot(data.frame(t), aes(x=t)) +
+  geom_histogram(aes(y=..density..), bins=30) +
+  geom_density(col = "black")+
+  ggtitle("Valores Simulados de una Distribución Weibull")+
+  xlab("Tiempo")+
+  ylab("Frecuencia")
+```
+
+Calculamos las estimaciones de máxima verosimilud para $\eta$ y $\beta$ usando la función **survreg** del paquete **survival** de R. Teniendo en cuenta la siguiente parametrización: 
+
+- $survreg's \ scale = 1/\eta$
+
+- $survreg’s \ intercept = log( \beta )$ 
+
+```{r}
+sur_shape <- log(12.3559)
+sur_scale <- 1/7.2393
+shape_sim <- model$coefficients
+scale_sim <- model$scale
+
+
+col1 <- c(2.508188, scale_sim)
+col2 <- c(sur_shape, sur_scale)
+
+table <- data.frame(col1, col2)
+
+kable(table, longtable = T, booktabs = T, align = "c",
+      col.names = c("survreg", "Reales"),
+      caption = "Parametros estimados con survreg vs Parametros Reales ",
+      linesep = "")
+
+```
+
+Se observa que las estimaciones para $\eta$ y $\beta$ usando la función **survreg** son relativamente buenas y precisas, teniendo en cuenta la pequeña cantidad de datos simulados. 
+
+Ahora procederemos a calcular $E(T)$
+
+$$E(T) = \int_0^\infty tf(t;\theta)dt=\int_0^\infty[1-F(t;\theta)]dt$$.
+
+Para ello necesitamos calcular la anterior integral usando la función **integrate** del paquete **stats** en R 
+
+```{r, echo=FALSE, include=FALSE}
+f<-function(t){exp(-(t/12.3559)^7.2393) }
+integrate(f, 0, Inf)
+```
+
+
+```{r}
+int <- integrate(f, 0, Inf)
+mean_t <- mean(t)
+table <- data.frame(mean_t, int$value)
+
+kable(table, longtable = T, booktabs = T, align = "c",
+      col.names = c("Promedio Aritmetico Datos Simulados", "E[T]"),
+      caption = "Promedio Aritmetico vs E[T]",
+      linesep = "")
+```
+
+Comparando el promedio aritmético de los datos simulados y $E(T)$ usando **integrate** con un error absoluto  de **0.0006**. Se puede apreciar y como era de esperarse esa aproximación tan cercana con el promedio aritmético de los datos simulados. 
+
+
 \section{Ejercicio 2}
 
 \subsection{Literal a: Prueba Densidad}
