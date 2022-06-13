@@ -69,7 +69,7 @@ E(T) &= \int_0^\infty tf(t;\theta)dt = \int_0^\infty\int_0^tf(t;\theta)dxdt \\
 \end{split}
 \end{equation*}
 
-Observe que $1 = \int_0^\infty f(t;\theta)dt = \int_0^xf(t;\theta)dt+\int_x^\infty f(t;\theta)dt$, es decir, $\int_x^\infty f(t;\theta)=1-F(t;\theta)$, con $F(x;\theta)$ la f.d.a de $T$ evaluada en $x$.
+Observe que $1 = \int_0^\infty f(t;\theta)dt = \int_0^xf(t;\theta)dt+\int_x^\infty f(t;\theta)dt$, es decir, \newline $\int_x^\infty f(t;\theta)=1-F(t;\theta)$, con $F(x;\theta)$ la f.d.a de $T$ evaluada en $x$.
 
 Luego, reemplazando en $(\ast)$ se sigue que:
 
@@ -82,11 +82,10 @@ Por lo tanto, si $T$ es una variable aleatoria continua con f.d.p $f(t;\theta)$ 
 $$E(T) = \int_0^\infty tf(t;\theta)dt=\int_0^\infty[1-F(t;\theta)]dt$$.
 
 <!-- Santiago Simulation -->
+\newpage
 \subsection{Literal b: Simulación}
 
-Sea $T \sim Weibull(\eta = 7.2393, \beta=12.3559)$ procedemos a simular 200 valores usando rweibull del software estadístico R fijando una **semilla = 3141592** que nos permita replicabilidad. 
-
-
+Sea $T \sim Weibull(\eta = 7.2393, \beta=12.3559)$ se procede a simular 200 valores usando la función `rweibull()` del software estadístico R fijando la semilla **3141592** con fines de replicabilidad.
 
 ```{r, echo=FALSE, include=FALSE}
 set.seed(3141592)
@@ -95,21 +94,25 @@ model <- survreg(Surv(t)~1, dist="weibull")
 model
 ```
 
-
 ```{r, echo = FALSE, warning=FALSE}
 ggplot(data.frame(t), aes(x=t)) +
-  geom_histogram(aes(y=..density..), bins=30) +
-  geom_density(col = "black")+
-  ggtitle("Valores Simulados de una Distribución Weibull")+
-  xlab("Tiempo")+
-  ylab("Frecuencia")
+  geom_histogram(aes(y = ..density..),
+                 bins = nclass.Sturges(t), 
+                 fill = "cyan", col = "black") +
+  geom_density(col = "black", size = 0.9) +
+  labs(title = "Valores Simulados de una Distribución Weibull",
+       subtitle = "Shape = 7.2393 - Scale = 12.3559",
+       x = "Tiempo", y = "Frecuencia relativa") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5))
 ```
 
-Calculamos las estimaciones de máxima verosimilud para $\eta$ y $\beta$ usando la función **survreg** del paquete **survival** de R. Teniendo en cuenta la siguiente parametrización: 
+Se calculan las estimaciones de máxima verosimilitud para $\eta$ y $\beta$ usando la función `survreg()` del paquete `survival` de R. Teniendo en cuenta la siguiente parametrización: 
 
-- $survreg's \ scale = 1/\eta$
+- $\text{Parámetro de escala en survreg} = \frac{1}{\eta}$
 
-- $survreg’s \ intercept = log( \beta )$ 
+- $\text{Intercepto en survreg} = log( \beta )$ 
 
 ```{r}
 sur_shape <- log(12.3559)
@@ -121,26 +124,26 @@ scale_sim <- model$scale
 col1 <- c(2.508188, scale_sim)
 col2 <- c(sur_shape, sur_scale)
 
-table <- data.frame(col1, col2)
+table <- data.frame(col1, col2) %>% 
+  mutate(rel = paste0(round(abs((col1 - col2)/col2)*100, 2), "%"))
 
 kable(table, longtable = T, booktabs = T, align = "c",
-      col.names = c("survreg", "Reales"),
+      col.names = c("Survreg", "Reales", "Error relativo porcentual"),
       caption = "Parametros estimados con survreg vs Parametros Reales ",
-      linesep = "")
+      linesep = "", digits = 4) 
 
 ```
 
-Se observa que las estimaciones para $\eta$ y $\beta$ usando la función **survreg** son relativamente buenas y precisas, teniendo en cuenta la pequeña cantidad de datos simulados. 
+Se observa que las estimaciones para $\eta$ y $\beta$ usando la función `survreg()` son relativamente buenas y precisas, teniendo en cuenta la pequeña cantidad de datos simulados. 
 
-Ahora procederemos a calcular $E(T)$
+Ahora se procede a calcular $E(T)$
 
 $$E(T) = \int_0^\infty tf(t;\theta)dt=\int_0^\infty[1-F(t;\theta)]dt$$.
 
-Para ello necesitamos calcular la anterior integral usando la función **integrate** del paquete **stats** en R 
+Para ello se necesita calcular la anterior integral usando la función `integrate()` del paquete `stats` en R
 
 ```{r, echo=FALSE, include=FALSE}
 f<-function(t){exp(-(t/12.3559)^7.2393) }
-integrate(f, 0, Inf)
 ```
 
 
@@ -150,13 +153,12 @@ mean_t <- mean(t)
 table <- data.frame(mean_t, int$value)
 
 kable(table, longtable = T, booktabs = T, align = "c",
-      col.names = c("Promedio Aritmetico Datos Simulados", "E[T]"),
-      caption = "Promedio Aritmetico vs E[T]",
-      linesep = "")
+      col.names = c("Promedio Aritmetico Datos Simulados", "$E(T)$"),
+      caption = "Promedio Aritmetico vs E(T)",
+      linesep = "", escape = F)
 ```
 
-Comparando el promedio aritmético de los datos simulados y $E(T)$ usando **integrate** con un error absoluto  de **0.0006**. Se puede apreciar y como era de esperarse esa aproximación tan cercana con el promedio aritmético de los datos simulados. 
-
+Comparando el promedio aritmético de los datos simulados y $E(T)$ usando `integrate()` se obtuvo un error absoluto de **`r  abs(mean_t - int$value) %>% round(4)`**. Se puede apreciar y como era de esperarse, se tiene cercanía entre la aproximación de la definición de la esperanza y el promedio aritmético de los datos simulados.
 
 \section{Ejercicio 2}
 
@@ -184,10 +186,12 @@ $$
 Sea $z=\frac{t-\gamma}{\theta}$, esta sustitución convierte a $(**)$ en:
 
 \begin{equation*}
-\int_0^\infty \frac{1}{\theta} e^{-\frac{z}{\theta}}dz=-e^{\frac{z}{\theta}}|_0^\infty=\cancelto{0}{[\lim_{t\to\infty} -e^{-\frac{z}{\theta}}]}+\cancelto{0}{e^{\frac{z}{\theta}}|_{z=0}}=1
+\int_0^\infty e^{-z}dz=-e^{-z}|_0^\infty=-\cancelto{0}{[\lim_{z\to\infty} e^{-z}]}+\cancelto{1}{e^{-z}}|_{z=0}=1
 \end{equation*}
 
 Así, como $f(t;\theta,\gamma)\geq0 \ \forall \ t \in \mathbb{R}$ y $\int_{\mathbb{R}}f(t;\theta,\gamma)dt=1$, se puede concluír que $f(t;\theta,\gamma)$ es en efecto una densidad de probabilidad.
+
+\newpage
 
 **Nota:** Se extendió la función a la recta real, pero bastaba con verificar que $f(t;\theta,\gamma)>0 \ \forall t \ \in \ S_T$ y $\int_{S_T}f(t;\theta,\gamma)dt=1$
 
@@ -278,7 +282,7 @@ una idea inicial de la forma distribucional de la variable de interés
 ggplot(pbc, aes(Time)) +
   geom_histogram(bins = nclass.Sturges(pbc$Time),
                  col = "black", fill = "cyan") +
-  labs(title ="Histograma del tiempo de falla",
+  labs(title ="Tiempo de falla",
        x = "Time", y = "Frecuencia") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
@@ -448,6 +452,8 @@ Así entonces, el modelo final obtenido después de la selección de
 variables dejando únicamente las covariables con un valor-p asociado
 menor o igual a una significancia usual, se reporta como sigue: 
 
+\newpage
+
 ```{r}
 wei9_res <- summary(wei9)
 rownames(wei9_res$table)[1] <- "Intercept" 
@@ -560,7 +566,7 @@ kable(comparison, longtable = T, booktabs = T, align = "c",
 ```
 De esta tabla se puede observar que, en general, los parámetros
 estimados para cada modelo en términos del hazard son considerablemente
-similares . Esto da cuenta de que el ajuste de ambos modelos es correcto
+similares. Esto da cuenta de que el ajuste de ambos modelos es correcto
 respectivo a su especificación.
 
 \subsection{Supervivencia respecto a algunos grupos}
